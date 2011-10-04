@@ -1,0 +1,4 @@
+[Project]
+Name=AMoDS
+Manager=KDevCMakeManager
+VersionControl=kdevgit
