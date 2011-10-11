@@ -1,0 +1,54 @@
+/*
+    <one line to give the program's name and a brief idea of what it does.>
+    Copyright (C) 2011  Lukas Zurschmiede <l.zurschmiede@delightsoftware.com>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
+#include "string.h"
+
+namespace lukyluke
+{
+  namespace helper
+  {
+    str vsprintf(const char* format, va_list args) {
+      const int buffSize = 16384;
+      char buff[buffSize];
+      std::vsnprintf(buff, buffSize, format, args);
+      return str(buff);
+    }
+    
+    str vsprintf(const str& format, va_list args) {
+      return vsprintf(format.c_str(), args);
+    }
+    
+    str sprintf(const char* format, ...) {
+      va_list args;
+      va_start(args, format);
+      str result = vsprintf(format, args);
+      va_end(args);
+      return result;
+    }
+    
+    str sprintf(const str& format, ...) {
+      va_list args;
+      va_start(args, format);
+      str result = vsprintf(format, args);
+      va_end(args);
+      return result;
+    }
+    
+  }
+}

@@ -1,4 +1,9 @@
 project(amods)
+cmake_minimum_required (VERSION 2.8) 
+find_library(PTHREAD pthread)
 
-add_executable(amods main.cpp)
+add_executable(amods src/hypercube.cpp src/helper/math.cpp src/helper/random.cpp src/helper/guid.cpp src/thread.cpp src/amods.cpp main.cpp)
 
+add_subdirectory(src)
+
+target_link_libraries(amods ${PTHREAD})

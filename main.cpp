@@ -1,6 +1,13 @@
 #include <iostream>
+#include "src/amods.h"
+
+using namespace std;
 
 int main(int argc, char **argv) {
-    std::cout << "Hello, world!" << std::endl;
-    return 0;
+  amods::AMoDS amods;
+  int param = 0;
+  int run = amods.Start((void*)param);
+  int end = amods.WaitUntilEnd();
+  cout << "out: " << end << "\n";
+  return 0;
 }
