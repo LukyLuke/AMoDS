@@ -25,39 +25,10 @@
 #include <vector>
 #include "helper/guid.h"
 
-class string;
-class string;
 namespace amods
 {
-  class HyperNode
-  {
-  private:
-    std::string identifier;
-    std::string label;
-    std::string address;
-    
-  protected:
-    std::vector<HyperNode *> nodes;
-    void Identifier(std::string id) { identifier = id; };
-    
-  public:
-    HyperNode();
-    HyperNode(std::string label);
-    HyperNode(std::string label, std::string host);
-    virtual ~HyperNode();
-    std::string Identifier() { return identifier; };
-    std::string Label() { return label; };
-    void Label(std::string l) { label = l; };
-    std::string Host() { return address; };
-    void Host(std::string host) { address = host; };
-    uint32_t NumConnections() { return nodes.size(); };
-    void ClearConnections();
-    void ConnectNode(HyperNode* node);
-    bool isConnected(HyperNode* node);
-    std::vector<HyperNode *>* GetConnectedNodes();
-    void debug();
-  };
-  
+  class Hypercube;
+  class HyperNode;
   
   class Hypercube
   {
@@ -91,5 +62,38 @@ namespace amods
     void debug();
   };
   
+  
+  class HyperNode
+  {
+  private:
+    std::string identifier;
+    std::string label;
+    std::string address;
+    Hypercube* network;
+    
+  protected:
+    std::vector<HyperNode*> nodes;
+    void Identifier(std::string id) { identifier = id; };
+    
+  public:
+    HyperNode();
+    HyperNode(std::string label);
+    HyperNode(std::string label, std::string host);
+    HyperNode(std::string label, Hypercube* netw);
+    virtual ~HyperNode();
+    std::string Identifier() { return identifier; };
+    std::string Label() { return label; };
+    void Label(std::string l) { label = l; };
+    std::string Host() { return address; };
+    void Host(std::string host) { address = host; };
+    void Network(Hypercube* netw) { network = netw; };
+    Hypercube* Network() { return network; };
+    uint32_t NumConnections() { return nodes.size(); };
+    void ClearConnections();
+    void ConnectNode(HyperNode* node);
+    bool isConnected(HyperNode* node);
+    std::vector<HyperNode*>* GetConnectedNodes();
+    void debug();
+  };
 }
 #endif // HYPERCUBE_H

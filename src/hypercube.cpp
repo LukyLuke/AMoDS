@@ -23,7 +23,6 @@
 
 namespace amods
 {
-
   Hypercube::Hypercube () {
     num_nodes = 0;
     num_connections = 0;
@@ -111,6 +110,8 @@ namespace amods
     CalculateDimension();
     CalculateConnections();
     
+    // TODO: The Connections are not that good on small not fully filled cubes
+    
     // Each dimension must be connected
     for (dim = 0; dim < dimension; dim++) {
       // this num nodes we have to connect and then to step over, so 2*step
@@ -128,25 +129,39 @@ namespace amods
   }
   
   void Hypercube::debug() {
-    std::cout << "Hypercube:\n  Dimension: "<< Dimension() << "\n  Nodes: " << num_nodes << " (Real " << GetNumNodes() << ")\n  Connections: "<< Connections() << "\n";
+    std::cout << "Hypercube:\n  Dimension: "<< Dimension() << "\n  Nodes: " << num_nodes << " (Real " << GetNumNodes() << ")\n  Connections: "<< Connections() << "\n\n";
+    int i;
+    for (i = 0; i < nodes.size(); i++) {
+      nodes.at(i)->debug();
+    }
   }
 
 
 
 
   HyperNode::HyperNode() {
+    network = NULL;
     Identifier(lukyluke::helper::GetGuid());
   }
   
   HyperNode::HyperNode(std::string label) {
+    network = NULL;
     Identifier(lukyluke::helper::GetGuid());
     Label(label);
   }
   
   HyperNode::HyperNode(std::string label, std::string host) {
+    network = NULL;
     Identifier(lukyluke::helper::GetGuid());
     Label(label);
     Host(host);
+  }
+  
+  HyperNode::HyperNode(std::string label, Hypercube* netw) {
+    network = netw;
+    Identifier(lukyluke::helper::GetGuid());
+    Label(label);
+    Host("");
   }
   
   HyperNode::~HyperNode() {
@@ -177,7 +192,7 @@ namespace amods
     nodes.clear();
   }
   
-  std::vector<HyperNode *>* HyperNode::GetConnectedNodes() {
+  std::vector<HyperNode*>* HyperNode::GetConnectedNodes() {
     return &nodes;
   }
 
@@ -188,6 +203,10 @@ namespace amods
       std::cout << nodes.at(i)->Label() << ",";
     }
     std::cout << ")\n";
+    
+    if (network != NULL) {
+      network->debug();
+    }
   }
 
 }
