@@ -19,9 +19,11 @@
 #include <iostream>
 #include <unistd.h>
 #include <pthread.h>
+
 #include "amods.h"
 #include "helper/math.h"
 #include "hypercube.h"
+#include "factory.h"
 
 namespace amods {
   AMoDS::AMoDS() { }
@@ -44,7 +46,7 @@ namespace amods {
    */
   void AMoDS::Execute(void *) {
     
-    Hypercube cube, cube1, cube2, cube3;
+    /*Hypercube cube, cube1, cube2, cube3;
     cube1.AddNode(new HyperNode("Label eins", "192.168.22.11"));
     cube1.AddNode(new HyperNode("Label zwei", "192.168.22.12"));
     cube1.AddNode(new HyperNode("Label drei", "192.168.22.13"));
@@ -69,7 +71,7 @@ namespace amods {
     cube.AddNode(new HyperNode("Network 3", &cube3));
     cube.BuildHypercube();
     
-    cube.debug();
+    cube.debug();*/
     
     /*int i;
     std::vector<HyperNode*>* nodes;
@@ -78,11 +80,21 @@ namespace amods {
       nodes->at(i)->debug();
     }*/
     
-    std::cout << "thread: " << "\n";
-    std::cout << lukyluke::helper::binomial(96, 20) << "\n";
-    std::cout.flush();
-    //sleep(2);
-    std::cout << "done\n";
+    const std::string m = std::string("src/modules/connection/libudp.so");
+    Factory moduleFactory;
+    moduleFactory.LoadPlugin(m);
+    std::cout << "factory loaded" << std::endl;
+    
+    amods::connections::Connection *con = moduleFactory.getConnection("udp");
+    amods::connections::Request req = { "Data" };
+    con->SendRequest(req);
+    delete con;
+    
+    // Why can I not destroy the factory here?
+    //delete &moduleFactory;
+    //std::cout << "factory destroyed" << std::endl;
+    
+    std::cout << "amods finished" << std::endl;
   }
 
 }
