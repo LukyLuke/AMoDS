@@ -60,7 +60,7 @@ namespace amods {
       
       //system.address = "192.168.22.250";
       
-      if (!system.address) {
+      if (system.address.empty()) {
         return resp;
       }
       if (!system.num) {
