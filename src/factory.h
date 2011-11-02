@@ -23,8 +23,9 @@
 #include <string>
 #include <map>
 
-#include "modules/connection/connection_manager.h"
 #include "module.h"
+#include "modules/connection/connection_manager.h"
+#include "modules/monitor/monitor_manager.h"
 
 namespace amods {
   const unsigned int MODULE_ENGINE_VERSION = 1;
@@ -32,9 +33,10 @@ namespace amods {
   class Factory
   {
   private:
-    typedef std::map< std::string, Module> ModulesMap;
+    typedef std::map< std::string, Module*> ModulesMap;
     ModulesMap loadedModules;
     connections::ConnectionManager connections;
+    monitor::MonitorManager monitors;
     
   public:
     Factory();
@@ -43,6 +45,9 @@ namespace amods {
     
     connections::ConnectionManager &GetConnectionsManager() { return connections; };
     connections::Connection *getConnection(std::string name);
+    
+    monitor::MonitorManager &GetMonitorManager() { return monitors; };
+    monitor::Monitor *getMonitor(std::string name);
   };
 
 }

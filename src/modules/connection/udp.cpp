@@ -37,7 +37,6 @@ namespace amods {
     }
     
     Connection* UDP::GetInstance() {
-      std::cout << "INININ" << std::endl;
       return new UDP();
     }
     

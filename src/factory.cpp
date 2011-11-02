@@ -28,30 +28,24 @@ namespace amods {
   Factory::Factory() {}
 
   Factory::~Factory() {
-    connections::ConnectionManager cm = GetConnectionsManager();
-    delete &cm;
-    
-    // Don't I have to free up and close the loaded module?!?
     for (ModulesMap::reverse_iterator it = loadedModules.rbegin(); it != loadedModules.rend(); it++) {
-      //it->second.FreeModule();
-      //delete &(it->second);
-      
+      it->second->FreeModule();
+      delete (it->second);
     }
     loadedModules.clear();
-    std::cout << "Factory destroy" << std::endl;
   }
   
   void Factory::LoadPlugin(const std::string &fileName) {
     // Load the Plugin only if it's not loaded already
     if (loadedModules.find(fileName) == loadedModules.end()) {
-      Module mod = Module(fileName);
-      if (mod.isLoaded() && (mod.GetEngineVersion() <= MODULE_ENGINE_VERSION)) {
+      Module* mod = new Module(fileName);
+      if (mod->isLoaded() && (mod->GetEngineVersion() <= MODULE_ENGINE_VERSION)) {
         loadedModules.insert(ModulesMap::value_type(
           fileName,
           mod
-        )).first->second.RegisterPlugin(*this);
+        )).first->second->RegisterPlugin(*this);
       } else {
-        delete &mod;
+        delete mod;
       }
     }
   }
@@ -61,9 +55,21 @@ namespace amods {
     connections::Connection *con;
     size_t idx;
     for (idx = 0; idx < cm.GetModulesCount(); idx++) {
-      con = cm.GetConnection(idx);
-      std::cout << "\t" << con->GetName() << "=" << name << " compare " << con->GetName().compare(name) << std::endl;
-      if (con->GetName().compare(name) == 0) {
+      con = cm.GetModule(idx);
+      if ((con != NULL) && (con->GetName().compare(name) == 0)) {
+        return con->GetInstance();
+      }
+    }
+    return NULL;
+  }
+  
+  monitor::Monitor *Factory::getMonitor(std::string name) {
+    monitor::MonitorManager cm = GetMonitorManager();
+    monitor::Monitor *con;
+    size_t idx;
+    for (idx = 0; idx < cm.GetModulesCount(); idx++) {
+      con = cm.GetModule(idx);
+      if ((con != NULL) && (con->GetName().compare(name) == 0)) {
         return con->GetInstance();
       }
     }

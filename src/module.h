@@ -35,6 +35,7 @@ namespace amods {
     typedef int fnGetEngineVersion();
     fnRegisterPlugin *f_fnRegisterPlugin;
     fnGetEngineVersion *f_fnGetEngineVersion;
+    int ref_counter;
     
   protected:
     std::string file;
@@ -47,10 +48,11 @@ namespace amods {
     void FreeModule();
     std::string &GetFileName() { return file; };
     int GetEngineVersion() const {
-      return f_fnGetEngineVersion();
+      if (loaded) return f_fnGetEngineVersion();
+      return -1;
     };
     void RegisterPlugin(Factory &factory) {
-      f_fnRegisterPlugin(factory);
+      if (loaded) f_fnRegisterPlugin(factory);
     };
     bool isLoaded() { return loaded; };
   };

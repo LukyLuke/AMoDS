@@ -1,4 +1,4 @@
-/*
+                                                      /*
  *    <one line to give the program's name and a brief idea of what it does.>
  *    Copyright (C) 2011  Lukas Zurschmiede <l.zurschmiede@delightsoftware.com>
  * 
@@ -17,8 +17,8 @@
  */
 
 
-#ifndef CONNECTION_MANAGER_H
-#define CONNECTION_MANAGER_H
+#ifndef MONITOR_MANAGER_H
+#define MONITOR_MANAGER_H
 
 #include <string>
 #include <vector>
@@ -28,33 +28,45 @@
 #include "../../module.h"
 
 namespace amods {
-  namespace connections {
-    struct Request {
-      std::string data;
-      std::string header[];
+  namespace monitor {
+    struct System {
+      std::string address;
+      size_t num;
+      unsigned int timeout_ms;
     };
     struct Response {
-      std::string data;
+      size_t num;
+      float min;
+      float max;
+      float avg;
+      float times[];
+      std::string data[];
       std::string header[];
     };
     
-    class Connection {
+    class Monitor {
     protected:
       std::string moduleName;
       std::string moduleDescription;
+      System system;
+      std::string send_data;
+      std::string send_header[];
     public:                     // see http://www.daniweb.com/software-development/cpp/threads/114299
-      virtual ~Connection() {}; // to prevent "undefined symbols" and "undefined reference to vtable of..." use {} here
-      virtual Connection* GetInstance() = 0;
+      virtual ~Monitor() {};    // to prevent "undefined symbols" and "undefined reference to vtable of..." use {} here
+      virtual Monitor* GetInstance() = 0;
       virtual const std::string &GetName() { return moduleName; };
       virtual const std::string &GetDescription() { return moduleDescription; };
-      virtual void SendRequest(Request req) = 0;
-      virtual Response GetResponse() = 0;
+      virtual void SetSystem(System sys) { system = sys; };
+      virtual System GetSystem() { return system; };
+      virtual Response BeginMonitor() = 0;
+      virtual Response BeginMonitor(std::string data) { return BeginMonitor(); };
+      virtual Response BeginMonitor(std::string data, std::string header[]) { return BeginMonitor(); };
     };
 
-    class ConnectionManager
+    class MonitorManager
     {
     public:
-      ~ConnectionManager() {
+      ~MonitorManager() {
         if (!modulesVector.empty()) {
           for (ModuleVector::reverse_iterator it = modulesVector.rbegin(); it != modulesVector.rend(); it++) {
             //delete *it;
@@ -63,24 +75,24 @@ namespace amods {
         }
       };
       
-      void addModule(std::auto_ptr<Connection> connection) {
-        modulesVector.push_back(connection.release());
+      void addModule(std::auto_ptr<Monitor> module) {
+        modulesVector.push_back(module.release());
       };
       
       size_t GetModulesCount() const {
         return modulesVector.size();
       };
       
-      Connection *GetModule(size_t index) {
+      Monitor *GetModule(size_t index) {
         if (index > GetModulesCount() || index < 0) return NULL;
         return modulesVector.at(index);
       };
       
     private:
-      typedef std::vector<Connection *> ModuleVector;
+      typedef std::vector<Monitor *> ModuleVector;
       ModuleVector modulesVector;
       
     };
   }
 }
-#endif // CONNECTION_MANAGER_H
+#endif // MONITOR_MANAGER_H

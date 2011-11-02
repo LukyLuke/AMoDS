@@ -32,10 +32,11 @@ namespace amods {
     const char *error;
     file = fileName;
     loaded = false;
+    ref_counter = 0;
     
     // TODO: Is there an other way to convert to "char[]" from string or "const *char[]"
     sprintf(name, "%s", std::string("./" + fileName).c_str());
-    std::cout << "Loading: " << name << std::endl;
+    std::cout << "Load: " << file << std::endl;
     
     // Open the Shared Library
     handle = dlopen(name, RTLD_NOW);
@@ -60,10 +61,16 @@ namespace amods {
       std::cerr << "EntryFunction not Found" << error << std::endl;
       loaded = false;
     }
+    
+    ref_counter++;
   }
   
   void Module::FreeModule() {
-    if (handle != NULL) {
+    ref_counter--;
+  }
+  
+  Module::~Module() {
+    if ( (handle != NULL) && (ref_counter <= 0) ) {
       const char *error;
       std::cout << "Free: " << file << std::endl;
       dlerror();
@@ -73,10 +80,6 @@ namespace amods {
       }
       handle = NULL;
     }
-  }
-  
-  Module::~Module() {
-    std::cout << "Destroy: " << file << std::endl;
   }
   
   

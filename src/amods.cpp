@@ -80,21 +80,31 @@ namespace amods {
       nodes->at(i)->debug();
     }*/
     
-    const std::string m = std::string("src/modules/connection/libudp.so");
-    Factory moduleFactory;
-    moduleFactory.LoadPlugin(m);
-    std::cout << "factory loaded" << std::endl;
+    Factory* moduleFactory = new Factory;
+    moduleFactory->LoadPlugin(std::string("src/modules/connection/libudp.so"));
+    moduleFactory->LoadPlugin(std::string("src/modules/monitor/libecho.so"));
     
-    amods::connections::Connection *con = moduleFactory.getConnection("udp");
+    /*amods::connections::Connection *con = moduleFactory->getConnection("udp");
     amods::connections::Request req = { "Data" };
     con->SendRequest(req);
     delete con;
+    con = NULL;*/
     
-    // Why can I not destroy the factory here?
-    //delete &moduleFactory;
-    //std::cout << "factory destroyed" << std::endl;
+    amods::monitor::Monitor *monitor = moduleFactory->getMonitor("echo");
+    amods::monitor::System sys = { "127.0.0.1", 5, 1000 };
+    amods::monitor::Response resp;
     
-    std::cout << "amods finished" << std::endl;
+    monitor->SetSystem(sys);
+    resp = monitor->BeginMonitor();
+    std::cout << resp.avg << std::endl;
+    delete monitor;
+    monitor = NULL;
+    
+    // Destroy the Factory
+    delete moduleFactory;
+    moduleFactory = NULL;
+    
+    std::cout << "Thread AMoDS Finished..." << std::endl;
   }
 
 }
