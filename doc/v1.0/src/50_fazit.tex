@@ -1,0 +1,26 @@
+
+Es existieren viele gute und zuverl\"assige Softwarel\"osungen zur \"Uberwachung von Systemen und Netzwerken auf dem Markt. Die meisten, wenn nicht sogar alle, bauen auf dem Prinzip der zentralen Datenerfassung auf. Alle Systeme werden von einem zentralen Punkt aus \"uberwacht. Nachrichten und Meldungen werden von dieser zentralen Instanz gespeichert und versendet. Einige Systeme arbeiten mit zus\"atzlichen Satelliten oder Agents, welche die Aufgabe haben, gewisse Netzwerksegmente zu \"uberwachen. Diese dezentralen Instanzen sind jedoch nichts anderes als Proxys, also Schnittstellen, welche Dienste pr\"ufen k\"onnen und die Resultate an die zentrale Einheit weiterleiten.
+
+Die Idee einer hochverf\"ugbaren und autonomen \"Uberwachung m\"usste, basierend auf diesen Fakten, eigentlich schon zu einem fr\"uheren Zeitpunkt aufgekommen sein. Bei jedem Server-Ausfall, Netzwerkzusammenbruch oder sonstigem Problem mit der zentralen Instanz wird das komplette Netzwerk nicht \"uberwacht. Bei den Recherchen zu dieser Arbeit wurden weder Dokumente noch Abhandlungen oder Anderes gefunden, welche auf diese Idee hingewiesen oder dies sogar als Thema hatten.
+
+Das Prinzip ist relativ einfach und schnell erkl\"art. Bei der theoretischen Betrachtung und der praktischen Umsetzung wurden jedoch vier kleinere Knackpunkte erkannt:
+\begin{itemize}
+ \item Die \"Uberwachung muss Netzwerk-\"ubergreifend sein, ohne \"uberm\"assige Router- und Firewall-Konfiguration.
+ \item Wie werden die Systeme innerhalb eines Netzwerkes und wie die Netzwerke selbst automatisch verbunden und verkn\"upft?
+ \item Ein Alert darf nur einmal und nicht von allen Systemen versendet werden.
+ \item Es muss eine M\"oglichkeit geben, die Daten trotzdem zentral speichern zu k\"onnen.
+\end{itemize}
+
+Durch einen Hinweis von Herr Frank Moehle, dass die zu \"uberwachenden Systeme eventuell nach dem Prinzip eines Hypercube miteinander verh\"angt werden k\"onnten, stellte sich schnell heraus, dass die ersten zwei Probleme in der Theorie relativ einfach zu l\"osen sind: Die Systeme eines jeden Netzwerkes bilden einen Hypercube. Die Netzwerke bilden ebenfalls einen. Dadurch beh\"alt man nicht nur die Anzahl an Verbindungen im Griff, sondern die Systeme k\"onnen auch automatisch fragmentiert und die Verbindungen der verschiedenen Netzwerke einfach konfiguriert werden.
+
+Die Tatsache, dass viele Server und auch Netzwerkkomponenten heutzutage \"uber eine Management-NIC verf\"ugen, vereinfacht das erste Problem weiter. Durch die Kommunikation \"uber dieses Netzwerk-Interface k\"onnen Router und Firewalls genereller konfiguriert werden. Da jedoch nicht alle Rechner und Komponenten \"uber zwei Netzwerkkarten verf\"ugen, muss die M\"oglichkeit bestehen, dass die Kommunikation dennoch \"uber einen separaten Kanal erfolgen kann. Dies kann durch die optionale Vernetzung der Systeme durch OpenVPN erfolgen.
+
+Die einzige Schwierigkeit ergab sich anschliessend in der praktischen Umsetzung bei der Herleitung des Algorithmus zur automatischen Bildung eines Hypercubes. Dar\"uber wurden leider weder Informationen noch Hinweise noch Anregungen gefunden. Dies bedeutete, dass dieser Algorithmus selber hergeleitet, vereinfacht und vor allem speicherschonend ausgearbeitet werden musste. Dies war eine der interessantesten Aufgaben der gesamten Thesis.
+
+Die Problematik zur Verhinderung des mehrfachen Sendens von Alert-Nachrichten konnte durch relativ einfache Pr\"ufungen und Notifikationen behoben werden.
+
+Die zentrale Datenspeicherung aller Pr\"ufergebnisse und Nachrichten konnte ebenfalls einfach gel\"ost werden. Alle Daten, die zentral gespeichert werden sollen, m\"ussen einfach durch alle konfigurierten Daten-Module gespeichert werden. Dabei spielt es f\"ur die Software keine Rolle, wo und wann welche Daten gespeichert werden. W\"ahrend das eine Modul alle Daten in einer lokalen Sqlite3-Datenbank speichert, schickt ein zweites Modul alle Daten zus\"atzlich noch in einen MySQL-Cluster oder \"uber eine definierte Schnittstelle an ein beliebiges anderes System.
+
+Die Frage, warum bislang noch kein solches System existiert, kann nach der Bachelor-Thesis immer noch nicht beantwortet werden. Die Probleme, welche sich bei der Planung und der praktischen Ausarbeitung ergeben haben, unterscheiden sich nicht von denen bei anderen Software-Projekten. Die Vorteile, die ein solches System bietet, \"ubertreffen meiner Meinung nach die Vorteile zentralisierter Systeme. Dabei ist nicht nur die Hochverf\"ugbarkeit ein Pluspunkt sondern auch die verteilte Netzwerklast, welche bei einem zentralisierten System ebenfalls zentralisiert ist.
+
+

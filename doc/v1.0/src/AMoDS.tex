@@ -1,0 +1,293 @@
+\documentclass[
+    11pt,
+    latin1,
+    a4paper,
+    %titelpage,
+    oneside
+]{scrreprt}
+\usepackage[latin1]{inputenc}
+\usepackage[ngerman]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{ngerman}
+\usepackage{scrpage2}
+\usepackage{pdfpages}
+\usepackage{lastpage}
+\usepackage{caption}
+\usepackage[noindentafter]{titlesec}
+\usepackage{textcomp}
+\usepackage{graphicx}
+\usepackage{wrapfig}
+\usepackage{subfigure}
+\usepackage{float}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{setspace}
+\usepackage{amsmath}
+\usepackage{booktabs}
+%\usepackage{thumbpdf}
+%\pagestyle{scrheadings}
+
+% Algorithms and Pseudocode
+%\usepackage{algorithmic}
+%\usepackage{algorithm}
+%\numberwithin{algorithm}{chapter}  % numbering is per chapter and not global over the whole document
+%\floatname{algorithm}{Pseudocode}
+%\renewcommand{\algorithmiccomment}[1]{\textit{// #1}}
+%%\renewcommand{\theHalgorithm}{\arabic{algorithm}}
+%%\listofalgorithms % Show the List of Algoritms
+
+% Codeblocks
+\usepackage{listings}
+\usepackage{color}
+\definecolor{listings}{RGB}{237,241,246}
+\lstloadlanguages{Clean,sh,bash,[ANSI]C,[ISO]C++,SQL,Pascal,Python,PHP,[gnu]awk,XML,XSLT,HTML}
+\lstset{language=Clean,frame=tb,numbers=left,captionpos=b,numberstyle=\tiny,basicstyle=\small,breaklines=true}
+\renewcommand*{\thelstnumber}{{\the\value{lstnumber}}{:}}
+\renewcommand*{\lstlistlistingname}{Codeblock-Verzeichnis}
+\renewcommand*{\lstlistingname}{Codeblock}
+
+%% Index
+\usepackage{makeidx}
+\renewcommand{\indexname}{Stichwortverzeichnis}
+\makeindex
+
+%% see http://blog.stefan-macke.com/2006/05/03/abkurzungsverzeichnis-mit-latex/
+%% and http://my.opera.com/timomeinen/blog/show.dml/68644
+\usepackage{nomencl}
+\let\abbrev\nomenclature
+\renewcommand{\nomname}{Abk\"urzungsverzeichnis}
+\setlength{\nomlabelwidth}{.25\hsize}
+\renewcommand{\nomlabel}[1]{#1 \dotfill}
+\setlength{\nomitemsep}{-\parsep}
+\makeglossary
+
+%% Caption modifications
+\usepackage{caption}
+\captionsetup{margin=20pt,labelfont=bf,font=footnotesize,justification=justified,singlelinecheck=false}
+
+%% PDF Meta-Informationen
+\hypersetup{%
+        %bookmarks=true, % Lesezeichen erzeugen
+        bookmarksopen=false, % Lesezeichen ausgeklappt
+        bookmarksnumbered=true, % Anzeige der Kapitelzahlen am Anfang der Namen der Lesezeichen
+        breaklinks=true, % ermöglicht einen Umbruch von URLs
+        colorlinks=true, % Einfärbung von Links
+        linkcolor=black, % Linkfarbe
+        anchorcolor=black, % Ankerfarbe
+        citecolor=blue, % Literaturlinks
+        filecolor=black, % Links zu lokalen Dateien
+        menucolor=black, % Acrobat Menü Einträge
+        urlcolor=blue, % URL-Farbe
+        %pdfpagemode=UseThumbs, % Anzeige der Piktogramme
+        pdfstartpage={1}, % Startseite
+        pdftitle = {Hochverf\"ugbare, autonome \"Uberwachung verteilter Systeme},
+        pdfsubject = {Bachelor-Thesis an der Fernfachhochschule Schweiz},
+        pdfauthor = {Lukas Zurschmiede},
+        pdfkeywords = {Hochverf\"ugbar, \"Uberwachung, Monitoring, Server, Verteilte Systeme, TCP/IP, Netzwerk, Autonom},
+        pdfcreator = {LaTeX to PDF-Creator},
+        pdfproducer = {LaTeX with hyperref}
+}
+
+%% Anzahl Unterverzeichnisse auf 4 - Standard auf 3
+\setcounter{tocdepth}{2}
+\setcounter{secnumdepth}{2}
+
+% Globale Definitionen
+\bibliographystyle{alphadin}
+\newcommand{\at}{\symbol{64}}
+\newcommand{\tld}{\symbol{126}}
+
+%% Dokument Meta-Informationen
+\author{Lukas Zurschmiede\\BSc INF 2006 ZH2\\06-655-138}
+\date{Lommis, 09. Februar 2011}
+\publishers{Betreut durch\\Herr Dr. Frank Moehle,\\cerrom engineering gmbh}
+\titlehead{\includegraphics[scale=0.25]{images/ffhs_logo}}
+\title{Hochverf\"ugbare, autonome \"Uberwachung verteilter Systeme}
+\subject{Bachelor-Thesis\\
+Studiengang Informatik}
+
+
+%% Anfang des Dokuments
+\begin{document}
+
+%% Titlepage
+\maketitle
+
+%% 1.5 Zeilenabstand f\"ur Abstract
+\onehalfspacing
+
+%% Abstract
+\newpage
+\setcounter{page}{1}
+\pagenumbering{Roman}
+\input{05_abstract}
+
+
+%% Danksagung auf neuer Seite
+\pagebreak
+\section*{Danksagung}
+  \noindent
+  Besten Dank an:
+  \newline
+
+  \noindent
+  delight software gmbh - \url{http://www.delight.ch/}\\
+  f\"ur die Unterst\"utzung und die zur Verf\"ugung gestellte Zeit, Infrastruktur und Systeme.
+  \newline\newline
+
+  \noindent
+  Herr Dr. Frank Moehle, cerrom engineering gmbh - \url{http://www.cerrom.com/}\\
+  der mich kompetent als Betreuer und mit wertvollen Ideen unterst\"utzte.
+  \newline\newline
+
+  \noindent
+  Herr Christian Gavesi\\
+  f\"ur gute Disskusionen, aus welchen ich hilfreiche Informationen ziehen konnte.
+  \newline\newline
+
+  \noindent
+  Renate Zurschmiede, Sara Gavesi, Andrea Heller, Elias Zurschmiede, Christian Gavesi\\
+  f\"ur die Korrekturlesungen und die grammatikalischen und technischen Korrekturvorschl\"age.
+  \newline\newline
+
+  \noindent
+  Sowie meinem Hund Rantaplan,\\
+  f\"ur seine Geduld und Treue w\"ahrend der letzten Monate.
+  \newline\newline
+
+
+
+%% Inhaltsverzeichnis auf neuer Seite
+\pagebreak
+\singlespacing
+\tableofcontents
+\pagebreak
+
+% Absatz-Formatierungen
+%%\fontsize{11pt}{1.5}
+%%\setlength{\parskip}{0.5em}
+\onehalfspacing
+\setcounter{page}{1}
+\pagenumbering{arabic}
+
+%% Dokumentation von hier an
+\chapter{Einleitung} \label{sec:einleitung}
+\input{10_einleitung}
+
+\chapter{Bestehende Systeme und Methoden} \label{sec:systeme}
+\input{20_bestehende_systeme}
+
+\chapter{Theoretische Abhandlung} \label{sec:theorie}
+\input{30_theorie}
+
+\chapter{Praktische Umsetzung} \label{sec:praxis}
+\input{40_praxis}
+
+\chapter{Fazit} \label{sec:fazit}
+\input{50_fazit}
+
+
+%% Anhang etc.
+\newpage
+\setcounter{page}{1}
+\pagenumbering{Alph}
+
+%% Abk\"urzungsverzeichnis
+\abbrev[prefix]{IP}{Internet Protocol}
+\abbrev[prefix]{VPN}{Virtual Private Network}
+\abbrev[prefix]{SSL}{Secure Socket Layer}
+\abbrev[prefix]{SSL-VPN}{Secure Socket Layer Virtual Private Network}
+\abbrev[prefix]{MID}{Man in the Middle}
+\abbrev[prefix]{XSS}{Cross-Site Scripting}
+\abbrev[prefix]{DPI}{Deep Packet Inspection}
+\abbrev[prefix]{IPS}{Intrusion Prevention System}
+\abbrev[prefix]{ARP}{Address Resolution Protocol}
+\abbrev[prefix]{MAC}{Media Access Control, Hardwareadresse (Dt)}
+\abbrev[prefix]{SNMP}{Simple Network Management Protocol}
+\abbrev[prefix]{MIB}{Management Information Base}
+\abbrev[prefix]{MO}{Managed Object}
+\abbrev[prefix]{OID}{Object Identifier}
+\abbrev[prefix]{PDU}{Protocol Data Unit}
+\abbrev[prefix]{IPMI}{Intelligent Platform Management Interface}
+\abbrev[prefix]{BMC}{Baseboard Management Controller}
+\abbrev[prefix]{SMBus}{System Management Bus}
+\abbrev[prefix]{RBL}{Realtime Blacklist}
+\abbrev[prefix]{SMS}{Short Message Service}
+\abbrev[prefix]{MMS}{Multimedia Message Service}
+\abbrev[prefix]{GSM}{Global System for Mobile Communications}
+\abbrev[prefix]{FME}{Funk-Melde Empf\"anger}
+\abbrev[prefix]{DME}{Digitale Melde Empf\"anger}
+\abbrev[prefix]{POCSAG}{Post Office Code Standard Advisory Group}
+\abbrev[prefix]{TETRA}{Terrestrial Trunked Radio}
+\abbrev[prefix]{API}{Application Programming Interface}
+\abbrev[prefix]{SMTP}{Simple Mail Transport Protocol}
+\abbrev[prefix]{AMoDS}{Autonomous Monitoring of Distributed Services}
+\abbrev[prefix]{NIC}{Network Interface Card}
+\abbrev[prefix]{TCP}{Transmission Control Protocol}
+\abbrev[prefix]{IP}{Internet Protocol}
+\abbrev[prefix]{IPv4}{Internet Protocol version 4}
+\abbrev[prefix]{IPv6}{Internet Protocol version 6}
+\abbrev[prefix]{ISP}{Internet Service Provider}
+\abbrev[prefix]{UDP}{User Datagram Prodocol}
+\abbrev[prefix]{MX}{Mail Exchange}
+\abbrev[prefix]{NRPE}{Nagios Remote Plugin Executor}
+\abbrev[prefix]{IIS}{Intrnet Information Server, Microsoft Webserver}
+\abbrev[prefix]{SQL}{Structured Query Language}
+\abbrev[prefix]{RRD}{Round Robin Database}
+\abbrev[prefix]{CDP}{Cisco Discovery Protocol}
+\abbrev[prefix]{LLDP}{Link Layer Discovery Protocol}
+\abbrev[prefix]{NAT}{Network Address Translation}
+\abbrev[prefix]{HTTP}{Hyper Text Transfer Protocol}
+\abbrev[prefix]{SMTP}{Simple Mail Transfer Protocol}
+\abbrev[prefix]{POP3}{Post Office Protocol v.3}
+\abbrev[prefix]{IMAP}{Internet Message Access Protocol}
+\abbrev[prefix]{ICMP}{Internet Control Message Protocol}
+\abbrev[prefix]{FTP}{File Transfer Protocol}
+\abbrev[prefix]{FIFO}{First in first out}
+
+\addcontentsline{toc}{chapter}{Abk\"urzungsverzeichnis}
+\printglossary
+
+% Index
+%\newpage
+%\addcontentsline{toc}{chapter}{Stichwortverzeichnis}
+%\printindex
+
+%% Abbildungs und Tabellenverzeichnis
+\newpage
+\addcontentsline {toc}{chapter}{Abbildungsverzeichnis}
+\listoffigures
+\addcontentsline {toc}{chapter}{Tabellenverzeichnis}
+\listoftables
+\addcontentsline {toc}{chapter}{Codeverzeichnis}
+%\listofalgorithms
+\lstlistoflistings
+
+%% Literaturverzeichniss
+\newpage
+\addcontentsline {toc}{chapter}{Literaturverzeichnis}
+\bibliography{literatur_concat}
+
+%% Anhang
+\newpage
+\addcontentsline{toc}{chapter}{Anhang}
+\chapter*{Anhang}
+\input{99_anhang}
+
+
+%% Eidesstattliche Erkl\"arung
+\newpage
+%\addcontentsline{toc}{chapter}{Selbst\"andigkeitserkl\"arung}
+\chapter*{Selbst\"andigkeitserkl\"arung}
+\noindent
+Ich erkl\"are hiermit, dass ich diese Thesis selbst\"andig verfasst und keine andern als die angegebenen Quellen benutzt habe. Alle Stellen, die w\"ortlich oder sinngem\"ass aus Quellen entnommen wurden, habe ich als solche kenntlich gemacht. Ich versichere zudem, dass ich bisher noch keine wissenschaftliche Arbeit mit gleichem oder \"ahnlichem Inhalt an der Fernfachhochschule Schweiz oder an einer anderen Hochschule eingereicht habe. Mir ist bekannt, dass andernfalls die Fernfachhochschule Schweiz zum Entzug des aufgrund dieser Thesis verliehenen Titels berechtigt ist.
+
+\noindent
+\newline\newline\newline\newline
+\begin{tabular}{p{4.5in}}
+    \hline \\
+    Lommis, 09. Februar 2011
+\end{tabular}
+
+\end{document}
