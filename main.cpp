@@ -8,6 +8,6 @@ int main(int argc, char **argv) {
   int param = 0;
   int run = amods.Start((void*)param);
   int end = amods.WaitUntilEnd();
-  cout << "out: " << end << "\n";
+  std::cout << "out: " << end << "\n";
   return 0;
 }

@@ -51,19 +51,19 @@ namespace amods {
     cube1.AddNode(new HyperNode("Label zwei", "192.168.22.12"));
     cube1.AddNode(new HyperNode("Label drei", "192.168.22.13"));
     cube1.AddNode(new HyperNode("Label vier", "192.168.22.14"));
-    cube1.AddNode(new HyperNode("Label fünf", "192.168.22.15"));
+    cube1.AddNode(new HyperNode("Label fÃ¼nf", "192.168.22.15"));
     cube1.BuildHypercube();
     
     cube2.AddNode(new HyperNode("Label zwei eins", "192.168.23.11"));
     cube2.AddNode(new HyperNode("Label zwei zwei", "192.168.23.12"));
     cube2.AddNode(new HyperNode("Label zwei drei", "192.168.23.13"));
     cube2.AddNode(new HyperNode("Label zwei vier", "192.168.23.14"));
-    cube2.AddNode(new HyperNode("Label zwei fünf", "192.168.23.15"));
+    cube2.AddNode(new HyperNode("Label zwei fÃ¼nf", "192.168.23.15"));
     cube2.BuildHypercube();
     
     cube3.AddNode(new HyperNode("Label drei drei", "192.168.24.13"));
     cube3.AddNode(new HyperNode("Label drei vier", "192.168.24.14"));
-    cube3.AddNode(new HyperNode("Label drei fünf", "192.168.24.15"));
+    cube3.AddNode(new HyperNode("Label drei fÃ¼nf", "192.168.24.15"));
     cube3.BuildHypercube();
     
     cube.AddNode(new HyperNode("Network 1", &cube1));
@@ -91,7 +91,7 @@ namespace amods {
     con = NULL;*/
     
     amods::monitor::Monitor *monitor = moduleFactory->getMonitor("echo");
-    amods::monitor::System sys = { "127.0.0.1", 5, 1000 };
+		amods::monitor::System sys = { "208.67.222.222", 5, 1000 };
     amods::monitor::Response resp;
     
     monitor->SetSystem(sys);
