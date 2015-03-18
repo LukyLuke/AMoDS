@@ -88,6 +88,8 @@ namespace amods {
 		* @param unsigned int num Number of EchoRequests to send
 		*/
 		void Echo::SendEchoRequest(pingstat *res, unsigned int num, unsigned int timeout_ms) {
+			seq_num = 1; // Initial sequence number for the icmp package
+
 			// Standard-Response
 			res->tsum = 0.0;
 			res->tmin = 99999999.9;
@@ -95,7 +97,7 @@ namespace amods {
 			res->nreceived = 0;
 			res->ntransmitted = 0;
 			res->error = "";
-			
+
 			// Check for a valid Destination
 			unsigned int address;
 			hostent *host = gethostbyname(system.address.c_str());
@@ -106,11 +108,7 @@ namespace amods {
 				res->error = "Host is not valid";
 				return;
 			}
-			
-			// Fill the Destination with right data
-			struct sockaddr_in destination, received_from;
-			socklen_t from_length = sizeof(received_from);
-			
+
 			memset(&received_from, 0, sizeof(received_from));
 			if (host != NULL) {
 				memcpy(&(destination.sin_addr), host->h_addr, host->h_length);
@@ -121,14 +119,13 @@ namespace amods {
 			}
 			destination.sin_port = htons(53);
 			std::cout << "(105) ping: " << inet_ntoa(destination.sin_addr) << std::endl;
-			
+
 			// may 5 seconds for sending and receiving
 			struct timeval timeout;
 			timeout.tv_sec = 5;
 			timeout.tv_usec = 0;
-			
+
 			// Create the Socket and set timeout-options
-			int sockraw;
 			sockraw = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
 			if (sockraw < 0) {
 				switch (errno) {
@@ -157,81 +154,85 @@ namespace amods {
 			}
 			if (setsockopt(sockraw, SOL_SOCKET, SO_SNDTIMEO, (char*)&timeout, sizeof(timeout)) < 0) {
 				switch (errno) {
-					case EBADF:       res->error = "Unable to set ReceiveTimeout (not a valid socket)"; break;
-					case EFAULT:      res->error = "Unable to set ReceiveTimeout (invalid memory for value)"; break;
-					case EINVAL:      res->error = "Unable to set ReceiveTimeout (invalid length)"; break;
-					case ENOPROTOOPT: res->error = "Unable to set ReceiveTimeout (unknown option on SOL_SOCKET level)"; break;
-					case ENOTSOCK:    res->error = "Unable to set ReceiveTimeout (socked var defines a file, not a socket)"; break;
-					default:          res->error = "Unable to set ReceiveTimeout (unknown)"; break;
+					case EBADF:       res->error = "Unable to set SendTimeout (not a valid socket)"; break;
+					case EFAULT:      res->error = "Unable to set SendTimeout (invalid memory for value)"; break;
+					case EINVAL:      res->error = "Unable to set SendTimeout (invalid length)"; break;
+					case ENOPROTOOPT: res->error = "Unable to set SendTimeout (unknown option on SOL_SOCKET level)"; break;
+					case ENOTSOCK:    res->error = "Unable to set SendTimeout (socked var defines a file, not a socket)"; break;
+					default:          res->error = "Unable to set SendTimeout (unknown)"; break;
 				}
 				return;
 			}
-			
-			// Create the ICMP-Data and fill it with '0'
-			char recv_buffer[PACKET_SIZE];
-			char icmp_data[PACKET_SIZE];
-			memset(icmp_data, 0, PACKET_SIZE);
-			
-			// map the first part of the ICMP-Data as the ICMP-Header
-			// that way we can use the struct to define all values and fill the memory
-			struct icmphdr *icmp_header = (struct icmphdr *) &icmp_data;
-			icmp_header->i_type = (EchoCodes)echo_request;
-			icmp_header->i_code = 0;
-			icmp_header->i_cksum = 0;
-			icmp_header->i_seq = 0;
-			icmp_header->i_id = _icmp_header_id;
-			
-			// Fill the whole Datapart of the ICMP-Data with 'E' as Pseudo-Data
-			char *datapart;
-			datapart = icmp_data + sizeof(struct icmphdr);
-			memset(datapart, 'E', DEF_PACKET_SIZE);
-			
+
 			// Send 'num' requests
-			unsigned short seq_num = 0;
 			int bytes_wrote, bytes_read;
+			char recv_buffer[MAX_PACKET_SIZE];
 			for (int i = 0; i < num; i++) {
-				struct timeval tstamp;
-				gettimeofday(&tstamp, NULL);
+				// Read data after the request was sent.
+				SendRequest(res);
 				
-				// Prepare the Header for this package
-				//struct icmphdr *icmp_header = (struct icmphdr *) &icmp_data;
-				//icmp_header->i_type = (EchoCodes)echo_request;
-				icmp_header->i_seq = seq_num++;
-				icmp_header->timestamp = ((tstamp.tv_sec * 1000.0) + (tstamp.tv_usec / 1000.0));
-				icmp_header->i_cksum = Checksum((unsigned short *)icmp_data, DEF_PACKET_SIZE + sizeof(struct icmphdr));
-				
-				// Send data
-				bytes_wrote = sendto(sockraw, icmp_data, DEF_PACKET_SIZE + sizeof(struct icmphdr), 0, (struct sockaddr *)&destination, sizeof(destination));
-				if (bytes_wrote < 0) {
-					if (errno == ETIMEDOUT) {
-						continue;
-					}
-					res->error = "Error sending data to host";
-					return;
+				// TODO: Why do we not get bytes_read with the number of bytes read?
+				if ((bytes_read = recvfrom(sockraw, recv_buffer, MAX_PACKET_SIZE, 0, (struct sockaddr *)&received_from, (socklen_t *)sizeof(received_from))) < 0) {
+					std::cout << "Read bytes: " << bytes_read << ", should be " << PACKET_SIZE << std::endl;
+					std::cout << "Error (" << errno << "):" << strerror(errno) << std::endl;
+					//continue;
 				}
-				res->ntransmitted++;
-				
-				// Read data
-				bytes_read = recvfrom(sockraw, recv_buffer, MAX_PACKET_SIZE, 0, (struct sockaddr *)&received_from, &from_length);
-				if (bytes_read < 0) {
-					if (errno == ETIMEDOUT) {
-						continue;
-					}
-					//res.error = "Error receiving data from host";
-					//return res;
-				}
-				
+				bytes_read = PACKET_SIZE;
+
 				// Decode Data and update the result
 				ParseResponse(res, recv_buffer, bytes_read, &received_from);
-				
-				// Wait a Second
+
+				// Wait until the nect echo request
 				if (i+1 < num) {
 					MicroSleep(timeout_ms);
 				}
 			}
 			close(sockraw);
 		}
-		
+
+		/**
+		 * Send out an ICMP ECHO Request
+		 * 
+		 * The first 8 bytes are reserved for a timeval struct to calculate the
+		 * round-trip of the package.
+		 * @return int Number of bytes written
+		 */
+		int Echo::SendRequest(pingstat *res) {
+			int bytes_wrote, i, packet_size = DEF_PACKET_SIZE + 8;
+
+			// icmp_packet is the data which is sent. The first part is for the ICMP-Header
+			// followed by 8 bytes for a timeval structure for the roundtrip and after some dummy data.
+			static char icmp_packet[MAX_PACKET_SIZE];
+			struct icmphdr *icmp_header = (struct icmphdr *)&icmp_packet; // icmp_header as first
+			struct timeval *tp = (struct timeval *)&icmp_packet[8]; // 8 bytes for the timeval
+			char *datap = &icmp_packet[8 + sizeof(struct timeval)]; // rest for dummy data
+
+			// Add the timeval with current time and fill the rest (after 8 bytes) with some int values
+			gettimeofday(tp, NULL);
+			for (i = 8; i < DEF_PACKET_SIZE; i++) {
+				*datap++ = i;
+			}
+
+			// Fill the icmp header data - Checksum has to be '0' to calculate the a valid checksum :)
+			icmp_header->i_type = (EchoCodes)echo_request;
+			icmp_header->i_code = 0;
+			icmp_header->i_id = _icmp_header_id;
+			icmp_header->i_seq = seq_num++;
+			icmp_header->i_cksum = 0;
+			icmp_header->i_cksum = Checksum((unsigned short *)icmp_packet, packet_size);
+
+			// Send the packet and check for an error
+			bytes_wrote = sendto(sockraw, icmp_packet, packet_size, 0, (struct sockaddr *)&destination, sizeof(struct sockaddr));
+			if (bytes_wrote < 0) {
+				std::cout << "Send-Error (" << errno << "):" << strerror(errno) << std::endl;
+				std::cout << "Written bytes: " << bytes_wrote << std::endl;
+				res->error = "Error sending data to host";
+				return bytes_wrote;
+			}
+			res->ntransmitted++;
+			return bytes_wrote;
+		}
+
 		/**
 		* Create the Checksum for the ICMP-Header
 		* @param unsigned short *buffer Buffer to create the Checksum for
@@ -265,21 +266,23 @@ namespace amods {
 		void Echo::ParseResponse(struct pingstat *resp, char *received, int bytes_read, struct sockaddr_in *from) {
 			struct iphdr *ip_header;
 			struct icmphdr *icmp_header;
-			struct timeval timestamp;
 			unsigned short ip_header_length;
-			double trip_time, calc_time;
-			
-			ip_header = (struct iphdr *) received;
-			ip_header_length = ip_header->h_len * 4; // Length in Bytes = 32-bit words * 4
+			double trip_time;
+			struct timeval *roundtrip, tstamp;
+			gettimeofday(&tstamp, NULL);
+
+			ip_header = (struct iphdr *)received;
+			ip_header_length = ip_header->h_len << 2; // Length in Bytes = 32-bit words * 4 (shift two bytes away)
 
 			// ICMP-Header is 8 Bytes, so we must have received more than the IP-Header + Icmp-Header length
 			if (bytes_read < ICMP_HEADER_LENGTH + ip_header_length) {
 				std::cout << "Too few bytes received" << std::endl;
 				return;
 			}
+			bytes_read -= ip_header_length;
 
-			// Checkfor a valid Response
-			icmp_header = (struct icmphdr *) (received + ip_header_length);
+			// Checkfor a valid Response, icmp header starts after the ip header
+			icmp_header = (struct icmphdr *)(received + ip_header_length);
 			if (icmp_header->i_type != (EchoCodes)echo_reply) {
 				std::cout << "Err type: " << (unsigned int)icmp_header->i_type << "!=" << (EchoCodes)echo_reply << std::endl;
 				return;
@@ -291,11 +294,9 @@ namespace amods {
 				return;
 			}
 
-			// Calculate the roundtrip
-			gettimeofday(&timestamp, NULL);
-			calc_time = (timestamp.tv_sec*1000.0 + timestamp.tv_usec/1000.0);
-			trip_time = calc_time - icmp_header->timestamp;
-
+			// Read out the timeval for calculate the roundtrip
+			roundtrip = (struct timeval *)(received + ip_header_length + ICMP_HEADER_LENGTH);
+			trip_time = ((tstamp.tv_sec * 1000.0) + (tstamp.tv_usec / 1000.0)) - ((roundtrip->tv_sec * 1000.0) + (roundtrip->tv_usec / 1000.0));
 			std::cout << "Valid packed with round trip: " << (unsigned int) trip_time << std::endl;
 
 			// Set PingStatistics values

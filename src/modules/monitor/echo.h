@@ -60,6 +60,11 @@ namespace amods {
 			Response BeginMonitor();
 
 		private:
+			unsigned short seq_num;
+			int sockraw;
+			struct sockaddr_in destination, received_from;
+
+			int SendRequest(pingstat *res);
 
 		protected:
 			struct iphdr {
@@ -69,7 +74,7 @@ namespace amods {
 				unsigned short total_len;      // total length of the packet
 				unsigned short ident;          // unique identifier
 				unsigned short frag_and_flags; // flags
-				unsigned char  ttl;
+				unsigned char ttl;
 				unsigned char proto;           // protocol (TCP, UDP etc)
 				unsigned short checksum;       // IP checksum
 				unsigned int source_ip;
@@ -82,7 +87,6 @@ namespace amods {
 				unsigned short i_cksum;
 				unsigned short i_id;
 				unsigned short i_seq;
-				double timestamp;       // This is not the std header, but we reserve space for time roundtrip calculation
 			};
 
 			struct icmproute {
@@ -93,13 +97,15 @@ namespace amods {
 			};
 
 			static const unsigned int ICMP_HEADER_LENGTH = 8;
-			static const unsigned int DEF_PACKET_SIZE = 32;
-			static const unsigned int MAX_PACKET_SIZE = 1024;
-			static const unsigned int PACKET_SIZE = (sizeof(struct icmphdr) + MAX_PACKET_SIZE);
+			static const unsigned int DEF_PACKET_SIZE = 64 - 8; // 8 bytes for timeval struct for the roundtrip calculation
+			static const unsigned int MAX_PACKET_SIZE = 4096;
+			static const unsigned int PACKET_SIZE = (sizeof(struct icmphdr) + DEF_PACKET_SIZE);
 
 			unsigned char _icmp_header_id;
 
-			void SendEchoRequest(pingstat *res) { return SendEchoRequest(res, 1, 1000); };
+			void SendEchoRequest(pingstat *res) {
+				return SendEchoRequest(res, 1, 1000);
+			};
 			void SendEchoRequest(pingstat *res, unsigned int num);
 			void SendEchoRequest(pingstat *res, unsigned int num, unsigned int timeout_ms);
 			unsigned short Checksum(unsigned short *buffer, int size);
