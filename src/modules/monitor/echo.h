@@ -51,6 +51,8 @@ namespace amods {
 				double tsum;
 				int ntransmitted;
 				int nreceived;
+				int errnum;
+				std::string errmsg;
 				std::string error;
 			};
 
@@ -64,7 +66,7 @@ namespace amods {
 			int sockraw;
 			struct sockaddr_in destination, received_from;
 
-			int SendRequest(pingstat *res);
+			int SendRequest();
 
 		protected:
 			struct iphdr {
@@ -101,15 +103,16 @@ namespace amods {
 			static const unsigned int MAX_PACKET_SIZE = 4096;
 			static const unsigned int PACKET_SIZE = (sizeof(struct icmphdr) + DEF_PACKET_SIZE);
 
+			pingstat res;
 			unsigned char _icmp_header_id;
 
-			void SendEchoRequest(pingstat *res) {
-				return SendEchoRequest(res, 1, 1000);
+			void SendEchoRequest() {
+				return SendEchoRequest(1, 1000);
 			};
-			void SendEchoRequest(pingstat *res, unsigned int num);
-			void SendEchoRequest(pingstat *res, unsigned int num, unsigned int timeout_ms);
+			void SendEchoRequest(unsigned int num);
+			void SendEchoRequest(unsigned int num, unsigned int timeout_ms);
 			unsigned short Checksum(unsigned short *buffer, int size);
-			void ParseResponse(pingstat *resp, char *received, int bytes_read, struct sockaddr_in *from);
+			void ParseResponse(char *received, int bytes_read, struct sockaddr_in *from);
 			void MicroSleep(unsigned int ms);
 		};
 

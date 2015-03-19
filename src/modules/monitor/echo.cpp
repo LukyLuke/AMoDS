@@ -37,14 +37,22 @@
 
 namespace amods {
 	namespace monitor {
-		
 		Echo::Echo() {
 			moduleName = "echo";
 			moduleDescription = "Sends an ECHO-Ping to a remote Host and analyzes the response";
 		}
-		
-		Echo::~Echo() {}
-		
+
+		Echo::~Echo() {
+			if (sockraw > 0) {
+				close(sockraw);
+			}
+			
+			if (res.error.length() > 0) {
+				std::cerr << "ICPM-Error: " << res.error << std::endl;
+			}
+			std::cout << "min: " << res.tmin << " / max: " << res.tmax << " / nrecv: " << res.nreceived << " / ntrans: " << res.ntransmitted << std::endl;
+		}
+
 		Response Echo::BeginMonitor() {
 			Response resp;
 			resp.num = GetSystem().num;
@@ -58,8 +66,6 @@ namespace amods {
 			// ICMP Header-ID to check for a valid response
 			_icmp_header_id = (unsigned short) syscall(SYS_gettid);
 			
-			//system.address = "192.168.22.250";
-			
 			if (system.address.empty()) {
 				return resp;
 			}
@@ -71,33 +77,26 @@ namespace amods {
 			}
 			
 			// Create the statistics and start the Monitoring
-			pingstat res;
-			SendEchoRequest(&res, system.num, system.timeout_ms);
-			
-			if (res.error.length() > 0) {
-				std::cerr << "ICPM-Error: " << res.error << std::endl;
-			}
-			std::cout << "min: " << res.tmin << " / max: " << res.tmax << " / nrecv: " << res.nreceived << " / ntrans: " << res.ntransmitted << std::endl;
+			SendEchoRequest(system.num, system.timeout_ms);
 			
 			return resp;
 		}
-		
+
 		/**
 		* Send 'num' EchoPings
-		* @param pingstat *res PingStatistics to fill
 		* @param unsigned int num Number of EchoRequests to send
 		*/
-		void Echo::SendEchoRequest(pingstat *res, unsigned int num, unsigned int timeout_ms) {
+		void Echo::SendEchoRequest(unsigned int num, unsigned int timeout_ms) {
 			seq_num = 1; // Initial sequence number for the icmp package
-
+			
 			// Standard-Response
-			res->tsum = 0.0;
-			res->tmin = 99999999.9;
-			res->tmax = 0.0;
-			res->nreceived = 0;
-			res->ntransmitted = 0;
-			res->error = "";
-
+			res.tsum = 0.0;
+			res.tmin = 99999999.9;
+			res.tmax = 0.0;
+			res.nreceived = 0;
+			res.ntransmitted = 0;
+			res.error = "";
+			
 			// Check for a valid Destination
 			unsigned int address;
 			hostent *host = gethostbyname(system.address.c_str());
@@ -105,10 +104,10 @@ namespace amods {
 				address = inet_addr(system.address.c_str());
 			}
 			if (!host && (address == INADDR_NONE)) {
-				res->error = "Host is not valid";
+				res.error = "Host is not valid";
 				return;
 			}
-
+			
 			memset(&received_from, 0, sizeof(received_from));
 			if (host != NULL) {
 				memcpy(&(destination.sin_addr), host->h_addr, host->h_length);
@@ -119,75 +118,79 @@ namespace amods {
 			}
 			destination.sin_port = htons(53);
 			std::cout << "(105) ping: " << inet_ntoa(destination.sin_addr) << std::endl;
-
+			
 			// may 5 seconds for sending and receiving
 			struct timeval timeout;
 			timeout.tv_sec = 5;
 			timeout.tv_usec = 0;
-
+			
 			// Create the Socket and set timeout-options
 			sockraw = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
 			if (sockraw < 0) {
 				switch (errno) {
-					case EPERM:           res->error = "Unable to create socket (no root)"; break;
-					case EACCES:          res->error = "Unable to create socket (no permission)"; break;
-					case EAFNOSUPPORT:    res->error = "Unable to create socket (family not supported)"; break;
-					case EINVAL:          res->error = "Unable to create socket (unknown protocol/type)"; break;
-					case EMFILE:          res->error = "Unable to create socket (too many open files or processes)"; break;
-					case ENOBUFS:         res->error = "Unable to create socket (insufficient buffers available)"; break;
-					case ENOMEM:          res->error = "Unable to create socket (insufficient memory available)"; break;
-					case EPROTONOSUPPORT: res->error = "Unable to create socket (protocol or type not supported)"; break;
-					default:              res->error = "Unable to create socket (unknown)"; std::cout << errno << std::endl; break;
+					case EPERM:           res.error = "Unable to create socket (no root)"; break;
+					case EACCES:          res.error = "Unable to create socket (no permission)"; break;
+					case EAFNOSUPPORT:    res.error = "Unable to create socket (family not supported)"; break;
+					case EINVAL:          res.error = "Unable to create socket (unknown protocol/type)"; break;
+					case EMFILE:          res.error = "Unable to create socket (too many open files or processes)"; break;
+					case ENOBUFS:         res.error = "Unable to create socket (insufficient buffers available)"; break;
+					case ENOMEM:          res.error = "Unable to create socket (insufficient memory available)"; break;
+					case EPROTONOSUPPORT: res.error = "Unable to create socket (protocol or type not supported)"; break;
+					default:              res.error = "Unable to create socket (unknown)"; std::cout << errno << std::endl; break;
 				}
 				return;
 			}
 			if (setsockopt(sockraw, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout)) < 0) {
 				switch (errno) {
-					case EBADF:       res->error = "Unable to set ReceiveTimeout (not a valid socket)"; break;
-					case EFAULT:      res->error = "Unable to set ReceiveTimeout (invalid memory for value)"; break;
-					case EINVAL:      res->error = "Unable to set ReceiveTimeout (invalid length)"; break;
-					case ENOPROTOOPT: res->error = "Unable to set ReceiveTimeout (unknown option on SOL_SOCKET level)"; break;
-					case ENOTSOCK:    res->error = "Unable to set ReceiveTimeout (socked var defines a file, not a socket)"; break;
-					default:          res->error = "Unable to set ReceiveTimeout (unknown)"; break;
+					case EBADF:       res.error = "Unable to set ReceiveTimeout (not a valid socket)"; break;
+					case EFAULT:      res.error = "Unable to set ReceiveTimeout (invalid memory for value)"; break;
+					case EINVAL:      res.error = "Unable to set ReceiveTimeout (invalid length)"; break;
+					case ENOPROTOOPT: res.error = "Unable to set ReceiveTimeout (unknown option on SOL_SOCKET level)"; break;
+					case ENOTSOCK:    res.error = "Unable to set ReceiveTimeout (socked var defines a file, not a socket)"; break;
+					default:          res.error = "Unable to set ReceiveTimeout (unknown)"; break;
 				}
 				return;
 			}
 			if (setsockopt(sockraw, SOL_SOCKET, SO_SNDTIMEO, (char*)&timeout, sizeof(timeout)) < 0) {
 				switch (errno) {
-					case EBADF:       res->error = "Unable to set SendTimeout (not a valid socket)"; break;
-					case EFAULT:      res->error = "Unable to set SendTimeout (invalid memory for value)"; break;
-					case EINVAL:      res->error = "Unable to set SendTimeout (invalid length)"; break;
-					case ENOPROTOOPT: res->error = "Unable to set SendTimeout (unknown option on SOL_SOCKET level)"; break;
-					case ENOTSOCK:    res->error = "Unable to set SendTimeout (socked var defines a file, not a socket)"; break;
-					default:          res->error = "Unable to set SendTimeout (unknown)"; break;
+					case EBADF:       res.error = "Unable to set SendTimeout (not a valid socket)"; break;
+					case EFAULT:      res.error = "Unable to set SendTimeout (invalid memory for value)"; break;
+					case EINVAL:      res.error = "Unable to set SendTimeout (invalid length)"; break;
+					case ENOPROTOOPT: res.error = "Unable to set SendTimeout (unknown option on SOL_SOCKET level)"; break;
+					case ENOTSOCK:    res.error = "Unable to set SendTimeout (socked var defines a file, not a socket)"; break;
+					default:          res.error = "Unable to set SendTimeout (unknown)"; break;
 				}
 				return;
 			}
-
+			
 			// Send 'num' requests
 			int bytes_wrote, bytes_read;
 			char recv_buffer[MAX_PACKET_SIZE];
 			for (int i = 0; i < num; i++) {
-				// Read data after the request was sent.
-				SendRequest(res);
-				
-				// TODO: Why do we not get bytes_read with the number of bytes read?
-				if ((bytes_read = recvfrom(sockraw, recv_buffer, MAX_PACKET_SIZE, 0, (struct sockaddr *)&received_from, (socklen_t *)sizeof(received_from))) < 0) {
-					std::cout << "Read bytes: " << bytes_read << ", should be " << PACKET_SIZE << std::endl;
-					std::cout << "Error (" << errno << "):" << strerror(errno) << std::endl;
-					//continue;
-				}
-				bytes_read = PACKET_SIZE;
-
-				// Decode Data and update the result
-				ParseResponse(res, recv_buffer, bytes_read, &received_from);
-
-				// Wait until the nect echo request
-				if (i+1 < num) {
+				if (i > 0) {
 					MicroSleep(timeout_ms);
 				}
+				
+				// Read data after the request was sent.
+				SendRequest();
+				
+				// The function recvfrom throws an error EFAULT (Bad Address) and returnd -1 but receives data.
+				// Therefore we reset the receiving buffer and check if we got some data.
+				recv_buffer[0] = '\0';
+				if ((bytes_read = recvfrom(sockraw, recv_buffer, MAX_PACKET_SIZE, 0, (struct sockaddr *)&received_from, (socklen_t *)sizeof(received_from))) < 0) {
+					if ((errno == EAGAIN) || (recv_buffer[0] != '\0')) {
+						bytes_read = PACKET_SIZE;
+					}
+					else {
+						std::cout << "Read bytes: " << bytes_read << ", should be " << PACKET_SIZE << std::endl;
+						std::cout << "Error (" << errno << "):" << strerror(errno) << std::endl;
+						continue;
+					}
+				}
+				
+				// Decode Data and update the result
+				ParseResponse(recv_buffer, bytes_read, &received_from);
 			}
-			close(sockraw);
 		}
 
 		/**
@@ -197,22 +200,22 @@ namespace amods {
 		 * round-trip of the package.
 		 * @return int Number of bytes written
 		 */
-		int Echo::SendRequest(pingstat *res) {
+		int Echo::SendRequest() {
 			int bytes_wrote, i, packet_size = DEF_PACKET_SIZE + 8;
-
+			
 			// icmp_packet is the data which is sent. The first part is for the ICMP-Header
 			// followed by 8 bytes for a timeval structure for the roundtrip and after some dummy data.
 			static char icmp_packet[MAX_PACKET_SIZE];
 			struct icmphdr *icmp_header = (struct icmphdr *)&icmp_packet; // icmp_header as first
 			struct timeval *tp = (struct timeval *)&icmp_packet[8]; // 8 bytes for the timeval
 			char *datap = &icmp_packet[8 + sizeof(struct timeval)]; // rest for dummy data
-
+			
 			// Add the timeval with current time and fill the rest (after 8 bytes) with some int values
 			gettimeofday(tp, NULL);
 			for (i = 8; i < DEF_PACKET_SIZE; i++) {
 				*datap++ = i;
 			}
-
+			
 			// Fill the icmp header data - Checksum has to be '0' to calculate the a valid checksum :)
 			icmp_header->i_type = (EchoCodes)echo_request;
 			icmp_header->i_code = 0;
@@ -224,12 +227,12 @@ namespace amods {
 			// Send the packet and check for an error
 			bytes_wrote = sendto(sockraw, icmp_packet, packet_size, 0, (struct sockaddr *)&destination, sizeof(struct sockaddr));
 			if (bytes_wrote < 0) {
-				std::cout << "Send-Error (" << errno << "):" << strerror(errno) << std::endl;
-				std::cout << "Written bytes: " << bytes_wrote << std::endl;
-				res->error = "Error sending data to host";
+				res.error = "Error sending data to host";
+				res.errnum = errno;
+				res.errmsg = strerror(errno);
 				return bytes_wrote;
 			}
-			res->ntransmitted++;
+			res.ntransmitted++;
 			return bytes_wrote;
 		}
 
@@ -258,52 +261,55 @@ namespace amods {
 
 		/**
 		* Parse the Response of an ICMP EchoPing and fill the pingstatistics
-		* @param pingstat *resp Ping-Statistics to update
 		* @param char *received Received Data
 		* @param int bytes_read Number of received bytes
 		* @param struct sockaddr_in *from Where is this response from_length
 		*/
-		void Echo::ParseResponse(struct pingstat *resp, char *received, int bytes_read, struct sockaddr_in *from) {
+		void Echo::ParseResponse(char *received, int bytes_read, struct sockaddr_in *from) {
 			struct iphdr *ip_header;
 			struct icmphdr *icmp_header;
 			unsigned short ip_header_length;
 			double trip_time;
 			struct timeval *roundtrip, tstamp;
 			gettimeofday(&tstamp, NULL);
-
+			
 			ip_header = (struct iphdr *)received;
 			ip_header_length = ip_header->h_len << 2; // Length in Bytes = 32-bit words * 4 (shift two bytes away)
-
+			
 			// ICMP-Header is 8 Bytes, so we must have received more than the IP-Header + Icmp-Header length
 			if (bytes_read < ICMP_HEADER_LENGTH + ip_header_length) {
-				std::cout << "Too few bytes received" << std::endl;
+				res.errnum = EMSGSIZE;
+				res.errmsg = "Too few bytes received";
 				return;
 			}
 			bytes_read -= ip_header_length;
-
+			
 			// Checkfor a valid Response, icmp header starts after the ip header
 			icmp_header = (struct icmphdr *)(received + ip_header_length);
 			if (icmp_header->i_type != (EchoCodes)echo_reply) {
 				std::cout << "Err type: " << (unsigned int)icmp_header->i_type << "!=" << (EchoCodes)echo_reply << std::endl;
+				res.errnum = EPROTOTYPE;
+				res.errmsg = "Wrong ICMP type received: ";
+				res.errmsg.append((char *)(icmp_header->i_type));
 				return;
 			}
-
-			// this is not our package
+			
+			// This is not our package
 			if (icmp_header->i_id != _icmp_header_id) {
-				std::cout << "Captured someone elses packet, sorry :)" << std::endl;
+				res.errnum = EPROTO;
+				res.errmsg = "Someone elses package received.";
 				return;
 			}
-
+			
 			// Read out the timeval for calculate the roundtrip
 			roundtrip = (struct timeval *)(received + ip_header_length + ICMP_HEADER_LENGTH);
 			trip_time = ((tstamp.tv_sec * 1000.0) + (tstamp.tv_usec / 1000.0)) - ((roundtrip->tv_sec * 1000.0) + (roundtrip->tv_usec / 1000.0));
-			std::cout << "Valid packed with round trip: " << (unsigned int) trip_time << std::endl;
-
+			
 			// Set PingStatistics values
-			resp->tsum += trip_time;
-			resp->tmin = (trip_time < resp->tmin) ? trip_time : resp->tmin;
-			resp->tmax = (trip_time > resp->tmax) ? trip_time : resp->tmax;
-			resp->nreceived++;
+			res.tsum += trip_time;
+			res.tmin = (trip_time < res.tmin) ? trip_time : res.tmin;
+			res.tmax = (trip_time > res.tmax) ? trip_time : res.tmax;
+			res.nreceived++;
 		}
 
 		/**
@@ -316,7 +322,6 @@ namespace amods {
 			tv.tv_usec = ms % 1000;
 			select(0, NULL, NULL, NULL, &tv);
 		}
-		
 	}
 }
 
@@ -325,7 +330,7 @@ extern "C" {
 	int getEngineVersion() {
 		return 1;
 	}
-	
+
 	void registerPlugin(amods::Factory &factory) {
 		using namespace amods::monitor;
 		factory.GetMonitorManager().addModule(
