@@ -29,10 +29,10 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <sys/time.h>
+#include <string.h>
 
 #include "echo.h"
 #include "../../../factory.h"
-#include <string.h>
 
 namespace amods {
 	namespace monitor {

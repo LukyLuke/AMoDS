@@ -86,13 +86,21 @@ namespace amods {
 		moduleFactory->LoadPlugin(std::string("lib/libudp.so"));
 		moduleFactory->LoadPlugin(std::string("lib/libecho.so"));
 		
-		/*amods::connections::Connection *con = moduleFactory->getConnection("udp");
-		amods::connections::Request req = { "Data" };
-		con->SendRequest(req);
-		delete con;
-		con = NULL;*/
+		amods::connections::Connection *con = moduleFactory->getConnection("udp");
+		amods::connections::Request req = { "208.67.222.222", 53, 1, "test dns lookup" };
+		amods::connections::Response resp;
 		
-		amods::monitor::Monitor *monitor = moduleFactory->getMonitor("echo");
+		con->SendRequest(req);
+		resp = con->GetResponse();
+		if (resp.errnum > 0) {
+			std::cout << resp.error << std::endl;
+		}
+		std::cout << resp.data << std::endl;
+		
+		delete con;
+		con = NULL;
+		
+		/*amods::monitor::Monitor *monitor = moduleFactory->getMonitor("echo");
 		amods::monitor::System sys = { "208.67.222.222", 5, 1000 };
 		amods::monitor::Response resp;
 		
@@ -101,7 +109,7 @@ namespace amods {
 		std::cout << resp.avg << std::endl;
 		
 		delete monitor;
-		monitor = NULL;
+		monitor = NULL;*/
 		
 		std::cout << "Thread AMoDS Finished..." << std::endl;
 	}
