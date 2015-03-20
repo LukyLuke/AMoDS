@@ -21,7 +21,7 @@
 
 #include <netinet/in.h>
 
-#include "monitor_manager.h"
+#include "../monitor_manager.h"
 
 namespace amods {
 	namespace monitor {

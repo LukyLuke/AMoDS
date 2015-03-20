@@ -31,8 +31,7 @@
 #include <sys/time.h>
 
 #include "echo.h"
-#include "monitor_manager.h"
-#include "../../factory.h"
+#include "../../../factory.h"
 #include <string.h>
 
 namespace amods {
