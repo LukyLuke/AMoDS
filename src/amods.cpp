@@ -84,9 +84,10 @@ namespace amods {
 		
 		moduleFactory = new Factory;
 		moduleFactory->LoadPlugin(std::string("lib/libudp.so"));
-		moduleFactory->LoadPlugin(std::string("lib/libecho.so"));
+		moduleFactory->LoadPlugin(std::string("lib/libdns.so"));
+		//moduleFactory->LoadPlugin(std::string("lib/libecho.so"));
 		
-		amods::connections::Connection *con = moduleFactory->getConnection("udp");
+		/*amods::connections::Connection *con = moduleFactory->getConnection("udp");
 		amods::connections::Request req = { "208.67.222.222", 53, 1, "test dns lookup" };
 		amods::connections::Response resp;
 		
@@ -98,7 +99,7 @@ namespace amods {
 		std::cout << resp.data << std::endl;
 		
 		delete con;
-		con = NULL;
+		con = NULL;*/
 		
 		/*amods::monitor::Monitor *monitor = moduleFactory->getMonitor("echo");
 		amods::monitor::System sys = { "208.67.222.222", 5, 1000 };
@@ -110,6 +111,17 @@ namespace amods {
 		
 		delete monitor;
 		monitor = NULL;*/
+		
+		amods::monitor::Monitor *monitor = moduleFactory->getMonitor("dns");
+		amods::monitor::System sys = { "127.0.0.1", 5, 1000 };
+		amods::monitor::Response resp;
+		 
+		monitor->SetSystem(sys);
+		resp = monitor->BeginMonitor();
+		std::cout << resp.avg << std::endl;
+		 
+		delete monitor;
+		monitor = NULL;
 		
 		std::cout << "Thread AMoDS Finished..." << std::endl;
 	}
