@@ -28,24 +28,23 @@ namespace amods {
 	namespace connections {
 		class UDP : public Connection
 		{
-		private:
-			
-		protected:
-			static const unsigned int MAX_DATA_SIZE = 65507; // 2^16 - IP Header - UDP-Header
-			
-			Request request;
-			Response response;
-			int sockraw;
-			struct sockaddr_in destination, received_from;
-			
-		public:
-			UDP();
-			virtual ~UDP();
-			Connection* GetInstance();
-			void SendRequest(Request req);
-			Response GetResponse();
-		};
-			
+			private:
+				
+			protected:
+				static const unsigned int MAX_DATA_SIZE = 65507; // 2^16 - IP Header - UDP-Header
+				
+				Request request;
+				Response response;
+				int sockraw;
+				struct sockaddr_in destination, received_from;
+				
+			public:
+				UDP(Factory *factory);
+				virtual ~UDP();
+				Connection* GetInstance(Factory *factory);
+				void SendRequest(Request req);
+				Response GetResponse();
+			};
 	}
 }
 #endif // UDP_H

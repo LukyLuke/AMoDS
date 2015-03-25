@@ -27,6 +27,9 @@
 #include "../../module.h"
 
 namespace amods {
+
+	class Factory;
+
 	namespace connections {
 		struct Request {
 			std::string host;
@@ -41,48 +44,50 @@ namespace amods {
 			std::string errmsg;
 		};
 		
-		class Connection {
-		protected:
-			std::string moduleName;
-			std::string moduleDescription;
-		public:                     // see http://www.daniweb.com/software-development/cpp/threads/114299
-			virtual ~Connection() {}; // to prevent "undefined symbols" and "undefined reference to vtable of..." use {} here
-			virtual Connection* GetInstance() = 0;
-			virtual const std::string &GetName() { return moduleName; };
-			virtual const std::string &GetDescription() { return moduleDescription; };
-			virtual void SendRequest(Request req) = 0;
-			virtual Response GetResponse() = 0;
+		class Connection
+		{
+			protected:
+				Factory *module_factory;
+				std::string moduleName;
+				std::string moduleDescription;
+				
+			public:                     // see http://www.daniweb.com/software-development/cpp/threads/114299
+				virtual ~Connection() {}; // to prevent "undefined symbols" and "undefined reference to vtable of..." use {} here
+				virtual Connection* GetInstance(Factory *factory) = 0;
+				virtual const std::string &GetName() { return moduleName; };
+				virtual const std::string &GetDescription() { return moduleDescription; };
+				virtual void SendRequest(Request req) = 0;
+				virtual Response GetResponse() = 0;
 		};
 
 		class ConnectionManager
 		{
-		public:
-			~ConnectionManager() {
-				if (!modulesVector.empty()) {
-					for (ModuleVector::reverse_iterator it = modulesVector.rbegin(); it != modulesVector.rend(); it++) {
-						//delete *it;
+			public:
+				~ConnectionManager() {
+					if (!modulesVector.empty()) {
+						for (ModuleVector::reverse_iterator it = modulesVector.rbegin(); it != modulesVector.rend(); it++) {
+							//delete *it;
+						}
+						modulesVector.clear();
 					}
-					modulesVector.clear();
-				}
-			};
-			
-			void addModule(std::auto_ptr<Connection> connection) {
-				modulesVector.push_back(connection.release());
-			};
-			
-			size_t GetModulesCount() const {
-				return modulesVector.size();
-			};
-			
-			Connection *GetModule(size_t index) {
-				if (index > GetModulesCount() || index < 0) return NULL;
-				return modulesVector.at(index);
-			};
-			
-		private:
-			typedef std::vector<Connection *> ModuleVector;
-			ModuleVector modulesVector;
-			
+				};
+				
+				void addModule(std::auto_ptr<Connection> connection) {
+					modulesVector.push_back(connection.release());
+				};
+				
+				size_t GetModulesCount() const {
+					return modulesVector.size();
+				};
+				
+				Connection *GetModule(size_t index) {
+					if (index > GetModulesCount() || index < 0) return NULL;
+					return modulesVector.at(index);
+				};
+				
+			private:
+				typedef std::vector<Connection *> ModuleVector;
+				ModuleVector modulesVector;
 		};
 	}
 }

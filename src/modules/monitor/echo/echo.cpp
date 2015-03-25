@@ -36,9 +36,14 @@
 
 namespace amods {
 	namespace monitor {
-		Echo::Echo() {
+		Echo::Echo(Factory *factory) {
+			module_factory = factory;
 			moduleName = "echo";
 			moduleDescription = "Sends an ECHO-Ping to a remote Host and analyzes the response";
+		}
+		
+		Monitor* Echo::GetInstance(Factory *factory) {
+			return new Echo(factory);
 		}
 
 		Echo::~Echo() {
@@ -333,7 +338,7 @@ extern "C" {
 	void registerPlugin(amods::Factory &factory) {
 		using namespace amods::monitor;
 		factory.GetMonitorManager().addModule(
-			std::auto_ptr<Monitor>( new Echo() )
+			std::auto_ptr<Monitor>( new Echo(&factory) )
 		);
 	}
 }

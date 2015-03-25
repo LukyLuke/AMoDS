@@ -16,8 +16,8 @@
 		along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef ECHO_H
-#define ECHO_H
+#ifndef ECHO_MONITOR_H
+#define ECHO_MONITOR_H
 
 #include <netinet/in.h>
 
@@ -28,94 +28,93 @@ namespace amods {
 
 		class Echo : public Monitor
 		{
-		public:
-			enum EchoCodes {
-				echo_reply = 0,
-				destination_unreachable = 3,
-				source_quench = 4,
-				redirect = 5,
-				echo_request = 8,
-				time_exceeded = 11,
-				parameter_problem = 12,
-				timestamp_request = 13,
-				timestamp_reply = 14,
-				info_request = 15,
-				info_reply = 16,
-				address_request = 17,
-				address_reply = 18
-			};
+			public:
+				enum EchoCodes {
+					echo_reply = 0,
+					destination_unreachable = 3,
+					source_quench = 4,
+					redirect = 5,
+					echo_request = 8,
+					time_exceeded = 11,
+					parameter_problem = 12,
+					timestamp_request = 13,
+					timestamp_reply = 14,
+					info_request = 15,
+					info_reply = 16,
+					address_request = 17,
+					address_reply = 18
+				};
 
-			struct pingstat {
-				double tmin;
-				double tmax;
-				double tsum;
-				int ntransmitted;
-				int nreceived;
-				int errnum;
-				std::string errmsg;
-				std::string error;
-			};
+				struct pingstat {
+					double tmin;
+					double tmax;
+					double tsum;
+					int ntransmitted;
+					int nreceived;
+					int errnum;
+					std::string errmsg;
+					std::string error;
+				};
 
-			Echo();
-			virtual ~Echo();
-			Monitor* GetInstance() { return new Echo(); };
-			Response BeginMonitor();
+				Echo(Factory *factory);
+				virtual ~Echo();
+				Monitor* GetInstance(Factory *factory);
+				Response BeginMonitor();
 
-		private:
-			unsigned short seq_num;
-			int sockraw;
-			struct sockaddr_in destination, received_from;
+			private:
+				unsigned short seq_num;
+				int sockraw;
+				struct sockaddr_in destination, received_from;
+				int SendRequest();
 
-			int SendRequest();
+			protected:
+				struct iphdr {
+					unsigned int h_len:4;          // length of the header
+					unsigned int version:4;        // Version of IP
+					unsigned char tos;             // Type of service
+					unsigned short total_len;      // total length of the packet
+					unsigned short ident;          // unique identifier
+					unsigned short frag_and_flags; // flags
+					unsigned char ttl;
+					unsigned char proto;           // protocol (TCP, UDP etc)
+					unsigned short checksum;       // IP checksum
+					unsigned int source_ip;
+					unsigned int dest_ip;
+				};
 
-		protected:
-			struct iphdr {
-				unsigned int h_len:4;          // length of the header
-				unsigned int version:4;        // Version of IP
-				unsigned char tos;             // Type of service
-				unsigned short total_len;      // total length of the packet
-				unsigned short ident;          // unique identifier
-				unsigned short frag_and_flags; // flags
-				unsigned char ttl;
-				unsigned char proto;           // protocol (TCP, UDP etc)
-				unsigned short checksum;       // IP checksum
-				unsigned int source_ip;
-				unsigned int dest_ip;
-			};
+				struct icmphdr {
+					unsigned char i_type;
+					unsigned char i_code;   // type sub code
+					unsigned short i_cksum;
+					unsigned short i_id;
+					unsigned short i_seq;
+				};
 
-			struct icmphdr {
-				unsigned char i_type;
-				unsigned char i_code;   // type sub code
-				unsigned short i_cksum;
-				unsigned short i_id;
-				unsigned short i_seq;
-			};
+				struct icmproute {
+					unsigned char code;
+					unsigned char h_len:4;
+					unsigned char ptr_offset;
+					unsigned char ip_addr[9];
+				};
 
-			struct icmproute {
-				unsigned char code;
-				unsigned char h_len:4;
-				unsigned char ptr_offset;
-				unsigned char ip_addr[9];
-			};
+				static const unsigned int ICMP_HEADER_LENGTH = 8;
+				static const unsigned int DEF_PACKET_SIZE = 64 - 8; // 8 bytes for timeval struct for the roundtrip calculation
+				static const unsigned int MAX_PACKET_SIZE = 4096;
+				static const unsigned int PACKET_SIZE = (sizeof(struct icmphdr) + DEF_PACKET_SIZE);
 
-			static const unsigned int ICMP_HEADER_LENGTH = 8;
-			static const unsigned int DEF_PACKET_SIZE = 64 - 8; // 8 bytes for timeval struct for the roundtrip calculation
-			static const unsigned int MAX_PACKET_SIZE = 4096;
-			static const unsigned int PACKET_SIZE = (sizeof(struct icmphdr) + DEF_PACKET_SIZE);
+				pingstat res;
+				unsigned char _icmp_header_id;
 
-			pingstat res;
-			unsigned char _icmp_header_id;
-
-			void SendEchoRequest() {
-				return SendEchoRequest(1, 1000);
-			};
-			void SendEchoRequest(unsigned int num);
-			void SendEchoRequest(unsigned int num, unsigned int timeout_ms);
-			unsigned short Checksum(unsigned short *buffer, int size);
-			void ParseResponse(char *received, int bytes_read, struct sockaddr_in *from);
-			void MicroSleep(unsigned int ms);
+				void SendEchoRequest() {
+					return SendEchoRequest(1, 1000);
+				};
+				void SendEchoRequest(unsigned int num);
+				void SendEchoRequest(unsigned int num, unsigned int timeout_ms);
+				unsigned short Checksum(unsigned short *buffer, int size);
+				void ParseResponse(char *received, int bytes_read, struct sockaddr_in *from);
+				void MicroSleep(unsigned int ms);
 		};
 
 	}
 }
-#endif // ECHO_H
+#endif // ECHO_MONITOR_H

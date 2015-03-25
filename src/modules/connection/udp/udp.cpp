@@ -35,7 +35,8 @@
 
 namespace amods {
 	namespace connections {
-		UDP::UDP() {
+		UDP::UDP(Factory *factory) {
+			module_factory = factory;
 			moduleName = "udp";
 			moduleDescription = "UDP Connection Handler";
 		}
@@ -46,8 +47,8 @@ namespace amods {
 			}
 		}
 		
-		Connection* UDP::GetInstance() {
-			return new UDP();
+		Connection* UDP::GetInstance(Factory *factory) {
+			return new UDP(factory);
 		}
 		
 		void UDP::SendRequest(Request req) {
@@ -158,7 +159,7 @@ extern "C" {
 	void registerPlugin(amods::Factory &factory) {
 		using namespace amods::connections;
 		factory.GetConnectionsManager().addModule(
-			std::auto_ptr<Connection>( new UDP() )
+			std::auto_ptr<Connection>( new UDP(&factory) )
 		);
 	}
 }
