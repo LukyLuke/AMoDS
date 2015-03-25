@@ -43,7 +43,7 @@ namespace amods {
 			int errnum;
 			std::string errmsg;
 		};
-		
+
 		class Connection
 		{
 			protected:
@@ -71,20 +71,20 @@ namespace amods {
 						modulesVector.clear();
 					}
 				};
-				
+
 				void addModule(std::auto_ptr<Connection> connection) {
 					modulesVector.push_back(connection.release());
 				};
-				
+
 				size_t GetModulesCount() const {
 					return modulesVector.size();
 				};
-				
+
 				Connection *GetModule(size_t index) {
 					if (index > GetModulesCount() || index < 0) return NULL;
 					return modulesVector.at(index);
 				};
-				
+
 			private:
 				typedef std::vector<Connection *> ModuleVector;
 				ModuleVector modulesVector;

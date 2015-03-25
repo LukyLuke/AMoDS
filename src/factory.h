@@ -29,7 +29,7 @@
 
 namespace amods {
 	const unsigned int MODULE_ENGINE_VERSION = 1;
-	
+
 	class Factory
 	{
 		private:
@@ -37,7 +37,7 @@ namespace amods {
 			ModulesMap loadedModules;
 			connections::ConnectionManager connections;
 			monitor::MonitorManager monitors;
-			
+
 		public:
 			Factory();
 			virtual ~Factory();

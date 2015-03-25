@@ -47,29 +47,29 @@ namespace amods {
 			std::string data[];
 			std::string header[];
 		};
-		
+
 		class Monitor
 		{
-		protected:
-			Factory *module_factory;
-			std::string moduleName;
-			std::string moduleDescription;
-			System system;
-			std::string send_data;
-			std::vector<std::string> send_header;
-			
-		public:                     // see http://www.daniweb.com/software-development/cpp/threads/114299
-			virtual ~Monitor() {};    // to prevent "undefined symbols" and "undefined reference to vtable of..." use {} here
-			virtual Monitor* GetInstance(Factory *factory) = 0;
-			virtual const std::string &GetName() { return moduleName; };
-			virtual const std::string &GetDescription() { return moduleDescription; };
-			virtual void SetSystem(System sys) { system = sys; };
-			virtual System GetSystem() { return system; };
-			virtual void SetData(std::string data) { send_data = data; };
-			virtual void SetHeader(std::vector<std::string> header) { send_header = header; };
-			virtual Response BeginMonitor() = 0;
-			virtual Response BeginMonitor(std::string data) { SetData(data); return BeginMonitor(); };
-			virtual Response BeginMonitor(std::string data, std::vector<std::string> header) { SetData(data); SetHeader(header); return BeginMonitor(); };
+			protected:
+				Factory *module_factory;
+				std::string moduleName;
+				std::string moduleDescription;
+				System system;
+				std::string send_data;
+				std::vector<std::string> send_header;
+
+			public:                     // see http://www.daniweb.com/software-development/cpp/threads/114299
+				virtual ~Monitor() {};    // to prevent "undefined symbols" and "undefined reference to vtable of..." use {} here
+				virtual Monitor* GetInstance(Factory *factory) = 0;
+				virtual const std::string &GetName() { return moduleName; };
+				virtual const std::string &GetDescription() { return moduleDescription; };
+				virtual void SetSystem(System sys) { system = sys; };
+				virtual System GetSystem() { return system; };
+				virtual void SetData(std::string data) { send_data = data; };
+				virtual void SetHeader(std::vector<std::string> header) { send_header = header; };
+				virtual Response BeginMonitor() = 0;
+				virtual Response BeginMonitor(std::string data) { SetData(data); return BeginMonitor(); };
+				virtual Response BeginMonitor(std::string data, std::vector<std::string> header) { SetData(data); SetHeader(header); return BeginMonitor(); };
 		};
 
 		class MonitorManager
@@ -83,20 +83,20 @@ namespace amods {
 						modulesVector.clear();
 					}
 				};
-				
+
 				void addModule(std::auto_ptr<Monitor> module) {
 					modulesVector.push_back(module.release());
 				};
-				
+
 				size_t GetModulesCount() const {
 					return modulesVector.size();
 				};
-				
+
 				Monitor *GetModule(size_t index) {
 					if (index > GetModulesCount() || index < 0) return NULL;
 					return modulesVector.at(index);
 				};
-				
+
 			private:
 				typedef std::vector<Monitor *> ModuleVector;
 				ModuleVector modulesVector;
