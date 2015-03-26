@@ -35,13 +35,26 @@ namespace amods {
 			private:
 				
 			protected:
-				struct DnsResult {
-					unsigned int h_len:4;          // length of the header
-					unsigned int version:4;        // Version of IP
-					unsigned char tos;             // Type of service
+				struct DnsFlags {
+					unsigned int type:1;
+					unsigned int reverse:4;
+					unsigned int authoritative:1;
+					unsigned int truncated:1;
+					unsigned int recursive:1;
+					unsigned int recursion:1;
+					unsigned int _reserved_10:1;
+					unsigned int authenticated:1;
+					unsigned int _reserved_12:1;
+					unsigned int error:4;
 				};
-				void ParseResponse(char *received, DnsResult *res);
-				void SendRequest(Response * resp);
+				struct DnsResponse {
+					DnsFlags flags;
+					unsigned char type:4;
+					unsigned int ttl:8;
+					std::vector<std::string> data;
+				};
+				void ParseResponse(char *received, DnsResponse *res);
+				void SendRequest(Response *resp);
 		};
 	}
 }

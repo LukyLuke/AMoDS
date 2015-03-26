@@ -61,7 +61,10 @@ namespace amods {
 		* Check the DNS Server.
 		* @param Response *resp The reponse object with statistical data
 		*/
-		void Dns::SendRequest(Response * resp) {
+		void Dns::SendRequest(Response *resp) {
+			// Build the request package, all flags to '0' but recursive to '1'
+			DnsFlags header = { 0, 0, 0, 0, 1, 0, 0, 0, 0, 0 };
+			
 			amods::connections::Connection *connection = module_factory->getConnection("udp");
 			amods::connections::Request req = { "127.0.0.1", 53, 1, "test dns lookup" };
 			amods::connections::Response response;
@@ -81,10 +84,9 @@ namespace amods {
 		/**
 		* Parse the Response from the DNS Server
 		* @param char *received Received Data
-		* @param int bytes_read Number of received bytes
-		* @param struct sockaddr_in *from Where is this response from_length
+		* @param struct DnsResponse *res Response is saved in here
 		*/
-		void Dns::ParseResponse(char *received, DnsResult *res) {
+		void Dns::ParseResponse(char *received, DnsResponse *res) {
 			
 		}
 	}
