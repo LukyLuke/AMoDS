@@ -29,12 +29,9 @@ namespace lukyluke {
 		}
 
 		int RandomInt(int min, int max) {
+			RandomSeedInit();
 			if (max <= min) {
 				return int((max == min) ? min : max);
-			}
-			if (!__random_seed_initialized) {
-				RandomSeedInit();
-				__random_seed_initialized = true;
 			}
 			int range;
 			range = int(max - min + 1);
