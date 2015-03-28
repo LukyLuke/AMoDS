@@ -14,18 +14,13 @@
 
 		You should have received a copy of the GNU General Public License
 		along with this program.  If not, see <http://www.gnu.org/licenses/>.
+		
+		See RFC 1035: http://www.ietf.org/rfc/rfc1035.txt
 */
 
-#include <string>
-#include <ctime>
-#include <cstdlib>
-#include <cstdio>
-#include <errno.h>
-#include <sys/syscall.h>
-#include <sys/time.h>
+#include <bitset>
 
 #include "dns.h"
-#include "../../../factory.h"
 
 namespace amods {
 	namespace monitor {
@@ -33,6 +28,8 @@ namespace amods {
 			moduleName = "dns";
 			moduleDescription = "Check a DNS Server for a defined record or for a functionality";
 			module_factory = factory;
+			_create_types();
+			_create_classes();
 		}
 		
 		Monitor* Dns::GetInstance(Factory *factory) {
@@ -51,7 +48,6 @@ namespace amods {
 			resp.avg = 0.0;
 			resp.times[GetSystem().num];
 			resp.data[GetSystem().num];
-			resp.header[GetSystem().num];
 			
 			SendRequest(&resp);
 			return resp;
@@ -62,11 +58,56 @@ namespace amods {
 		* @param Response *resp The reponse object with statistical data
 		*/
 		void Dns::SendRequest(Response *resp) {
-			// Build the request package, all flags to '0' but recursive to '1'
-			DnsFlags header = { 0, 0, 0, 0, 1, 0, 0, 0, 0, 0 };
+			std::string data, _key, domain;
+			short type = 1, _class = 1;
+			char dns_package[sizeof(struct DnsHeader)];
+			struct DnsHeader *header = (struct DnsHeader *)&dns_package;
+			
+			// Add a random UID and mark it as recursive.
+			lukyluke::helper::RandomSeedInit();
+			header->uid = short( 65535 * (rand() / (RAND_MAX + 1.0)) );
+			header->recursive = 1;
+			header->num_questions = 1;
+			
+			// Add the header to the data string
+			data.append(dns_package);
+			
+			// Get the domain and append it
+			for (it_send_data = send_data.begin(); it_send_data != send_data.end(); it_send_data++) {
+				_key = it_send_data->first;
+				std::transform(_key.begin(), _key.end(), _key.begin(), ::tolower);
+				if (_key == "domain") {
+					domain = it_send_data->second;
+					std::transform(domain.begin(), domain.end(), domain.begin(), ::tolower);
+				}
+				if (_key == "type") {
+					type = getType(it_send_data->second);
+				}
+				if (_key == "class") {
+					_class = getClass(it_send_data->second);
+				}
+			}
+			
+			// The domain is split out by the '.' and these are replaced by the length of the following domain part
+			std::string _part;
+			std::size_t _pos = domain.find('.');
+			short _length;
+			while (_pos != std::string::npos) {
+				_part = domain.substr(0, _pos);
+				_length = (short)_part.length();
+				data.append((char *)&_length).append(_part);
+				domain.erase(0, _pos + 1);
+				_pos = domain.find('.');
+			}
+			_length = 0;
+			data.append((char *)&_length); // End of the domain part by 0x00
+			
+			// Append Query Type and Class as last
+			data.append((char *)&type);
+			data.append((char *)&_class);
 			
 			amods::connections::Connection *connection = module_factory->getConnection("udp");
-			amods::connections::Request req = { "127.0.0.1", 53, 1, "test dns lookup" };
+			amods::connections::Request req = { "127.0.0.1", 53, 1, data };
 			amods::connections::Response response;
 			
 			std::cout << "DNS Start..." << std::endl;
@@ -89,6 +130,65 @@ namespace amods {
 		void Dns::ParseResponse(char *received, DnsResponse *res) {
 			
 		}
+
+		/**
+		 * Get the corresponding numeric value based on the textual type
+		 * @param std::string type
+		 * @return short
+		 */
+		short Dns::getType(std::string type) const {
+			std::transform(type.begin(), type.end(), type.begin(), ::toupper);
+			std::map<short, std::string>::const_iterator it;
+			for (it = _types.begin(); it != _types.end(); it++) {
+				if (it->second == type) {
+					return it->first;
+				}
+			}
+		}
+
+		/**
+		 * Get the corresponding string value based on the numeric type
+		 * @param short type
+		 * @return std::string
+		 */
+		std::string Dns::getType(short type) const {
+			std::map<short, std::string>::const_iterator it;
+			it = _types.find(type);
+			if (it == _types.end()) {
+				return "";
+			}
+			return it->second;
+		}
+
+		/**
+		 * Get the corresponding numeric value based on the textual class
+		 * @param std::string _class
+		 * @return short
+		 */
+		short Dns::getClass(std::string _class) const {
+			std::transform(_class.begin(), _class.end(), _class.begin(), ::toupper);
+			std::map<short, std::string>::const_iterator it;
+			for (it = _classes.begin(); it != _classes.end(); it++) {
+				if (it->second == _class) {
+					return it->first;
+				}
+			}
+		}
+
+		/**
+		 * Get the corresponding string value based on the numeric class
+		 * @param short _class
+		 * @return std::string
+		 */
+		std::string Dns::getClass(short _class) const {
+			std::map<short, std::string>::const_iterator it;
+			it = _classes.find(_class);
+			if (it == _classes.end()) {
+				return "";
+			}
+			return it->second;
+		}
+
 	}
 }
 

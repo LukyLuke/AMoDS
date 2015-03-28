@@ -115,8 +115,10 @@ namespace amods {
 		monitor = NULL;*/
 		
 		amods::monitor::Monitor *monitor = moduleFactory->getMonitor("dns");
-		amods::monitor::System sys = { "127.0.0.1", 5, 1000 };
+		amods::monitor::System sys = { "127.0.0.1", 1, 1000 };
 		amods::monitor::Response resp;
+		monitor->SetData("domain", "some.subdomain.ranta.ch");
+		monitor->SetData("type", "A");
 		 
 		monitor->SetSystem(sys);
 		resp = monitor->BeginMonitor();

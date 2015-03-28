@@ -64,8 +64,6 @@ namespace amods {
 			resp.max = 0.0;
 			resp.avg = 0.0;
 			resp.times[GetSystem().num];
-			resp.data[GetSystem().num];
-			resp.header[GetSystem().num];
 			
 			// ICMP Header-ID to check for a valid response
 			_icmp_header_id = (unsigned short) syscall(SYS_gettid);

@@ -44,8 +44,7 @@ namespace amods {
 			float max;
 			float avg;
 			float times[];
-			std::string data[];
-			std::string header[];
+			std::vector<std::string> data;
 		};
 
 		class Monitor
@@ -55,8 +54,8 @@ namespace amods {
 				std::string moduleName;
 				std::string moduleDescription;
 				System system;
-				std::string send_data;
-				std::vector<std::string> send_header;
+				std::vector< std::pair<std::string, std::string> > send_data;
+				std::vector< std::pair<std::string, std::string> >::iterator it_send_data;
 
 			public:                     // see http://www.daniweb.com/software-development/cpp/threads/114299
 				virtual ~Monitor() {};    // to prevent "undefined symbols" and "undefined reference to vtable of..." use {} here
@@ -65,11 +64,10 @@ namespace amods {
 				virtual const std::string &GetDescription() { return moduleDescription; };
 				virtual void SetSystem(System sys) { system = sys; };
 				virtual System GetSystem() { return system; };
-				virtual void SetData(std::string data) { send_data = data; };
-				virtual void SetHeader(std::vector<std::string> header) { send_header = header; };
+				virtual void SetData(std::string data) { send_data.push_back(std::make_pair<std::string, std::string>("", data)); };
+				virtual void SetData(std::string key, std::string value) { send_data.push_back(std::make_pair<std::string, std::string>(key, value)); };
+				virtual void SetData(std::vector< std::pair<std::string, std::string> > data) { send_data = data; };
 				virtual Response BeginMonitor() = 0;
-				virtual Response BeginMonitor(std::string data) { SetData(data); return BeginMonitor(); };
-				virtual Response BeginMonitor(std::string data, std::vector<std::string> header) { SetData(data); SetHeader(header); return BeginMonitor(); };
 		};
 
 		class MonitorManager
