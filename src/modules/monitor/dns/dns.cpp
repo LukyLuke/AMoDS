@@ -62,15 +62,26 @@ namespace amods {
 			short type = 1, _class = 1;
 			char dns_package[sizeof(struct DnsHeader)];
 			struct DnsHeader *header = (struct DnsHeader *)&dns_package;
+			memset(header, 0, sizeof(struct DnsHeader));
 			
 			// Add a random UID and mark it as recursive.
 			lukyluke::helper::RandomSeedInit();
-			header->uid = short( 65535 * (rand() / (RAND_MAX + 1.0)) );
+			header->uid = (short)( 65535 * (rand() / (RAND_MAX + 1.0)) );
+			header->type = 1;
 			header->recursive = 1;
-			header->num_questions = 1;
+			//header->num_questions = 1;
+			
+			// TODO: The Byte-Order is wrong here
+			
+			long unsigned int *tmp = (long unsigned int *)&dns_package;
+			std::bitset<32> x(*tmp);
+			std::bitset<32> y(header->uid);
+			std::cout << "bits: " << x << std::endl;
+			std::cout << "bits: " << y << std::endl;
 			
 			// Add the header to the data string
 			data.append(dns_package);
+			return;
 			
 			// Get the domain and append it
 			for (it_send_data = send_data.begin(); it_send_data != send_data.end(); it_send_data++) {

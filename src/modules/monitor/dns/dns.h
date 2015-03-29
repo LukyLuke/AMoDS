@@ -22,6 +22,7 @@
 #define DNS_MONITOR_H
 
 #include <string>
+#include <string.h>
 #include <cstdlib>
 #include <cstdio>
 #include <algorithm>
@@ -81,20 +82,18 @@ namespace amods {
 			protected:
 				struct DnsHeader {
 					unsigned short uid;
-					unsigned int type:1;
-					unsigned int reverse:4;
-					unsigned int authoritative:1;
-					unsigned int truncated:1;
-					unsigned int recursive:1;
-					unsigned int recursion:1;
-					unsigned int _reserved_10:1;
-					unsigned int authenticated:1;
-					unsigned int _reserved_12:1;
-					unsigned int error:4;
-					unsigned short num_questions;
-					unsigned short num_answers;
-					unsigned short num_records;
-					unsigned short num_additional;
+					unsigned short type:1; // QR -  0: query, 1: response
+					unsigned short opcode:4; // OPCODE - 0: query, 1: iquery, 2: status, rest reserverd
+					unsigned short authoritative:1; // AA - Set to 1 in responses if the server is the authoritative one
+					unsigned short truncated:1; // TC - Set to 1 if the message was truncated due to too much data
+					unsigned short recursive:1; // RD - Recursion desired
+					unsigned short recursion:1; // RA - Recursion available
+					unsigned short _reserved:3; // Z - Reserved
+					unsigned short error:4; // RCODE - 0: No error, 1:Format error, 2: Server failure, 3: Name error, 4: Not implemented, 5: Refused, rest reserved
+					unsigned short num_questions; // QCOUNT
+					unsigned short num_answers; // ANCOUNT
+					unsigned short num_records; // NSCOUNT
+					unsigned short num_additional; // ARCOUNT
 				};
 				struct DnsResponse {
 					DnsHeader header;
