@@ -19,7 +19,6 @@
 */
 
 #include <bitset>
-
 #include "dns.h"
 
 namespace amods {
@@ -58,30 +57,19 @@ namespace amods {
 		* @param Response *resp The reponse object with statistical data
 		*/
 		void Dns::SendRequest(Response *resp) {
-			std::string data, _key, domain;
-			short type = 1, _class = 1;
-			char dns_package[sizeof(struct DnsHeader)];
+			std::string _key, domain;
+			uint8_t type = 1, _class = 1;
+			uint16_t header_size = sizeof(struct DnsHeader);
+			char dns_package[header_size];
 			struct DnsHeader *header = (struct DnsHeader *)&dns_package;
-			memset(header, 0, sizeof(struct DnsHeader));
+			memset(header, 0, header_size);
 			
 			// Add a random UID and mark it as recursive.
 			lukyluke::helper::RandomSeedInit();
-			header->uid = (short)( 65535 * (rand() / (RAND_MAX + 1.0)) );
-			header->type = 1;
+			header->uid = (uint16_t)( 65535 * (rand() / (RAND_MAX + 1.0)) );
+			header->type = 0;
 			header->recursive = 1;
-			//header->num_questions = 1;
-			
-			// TODO: The Byte-Order is wrong here
-			
-			long unsigned int *tmp = (long unsigned int *)&dns_package;
-			std::bitset<32> x(*tmp);
-			std::bitset<32> y(header->uid);
-			std::cout << "bits: " << x << std::endl;
-			std::cout << "bits: " << y << std::endl;
-			
-			// Add the header to the data string
-			data.append(dns_package);
-			return;
+			header->num_questions = 1;
 			
 			// Get the domain and append it
 			for (it_send_data = send_data.begin(); it_send_data != send_data.end(); it_send_data++) {
@@ -100,28 +88,40 @@ namespace amods {
 			}
 			
 			// The domain is split out by the '.' and these are replaced by the length of the following domain part
-			std::string _part;
+			std::vector<std::string> data;
 			std::size_t _pos = domain.find('.');
-			short _length;
+			uint16_t _length;
 			while (_pos != std::string::npos) {
-				_part = domain.substr(0, _pos);
-				_length = (short)_part.length();
-				data.append((char *)&_length).append(_part);
+				data.push_back(domain.substr(0, _pos));
+				_length += data.back().length() + 1; // +1 because there is always one byte which gives the length of the following domain part
 				domain.erase(0, _pos + 1);
 				_pos = domain.find('.');
 			}
-			_length = 0;
-			data.append((char *)&_length); // End of the domain part by 0x00
 			
-			// Append Query Type and Class as last
-			data.append((char *)&type);
-			data.append((char *)&_class);
+			// Calculate the size of the final char array we want to submit and copy the DNS-Package header
+			char cdata[header_size + _length + 3]; // +3 for the type and class as last arguments and NULL termination
+			memcpy(&cdata[0], &dns_package, header_size);
+			
+			// Attach each domain part, prefixed with the number of chars
+			_length = header_size;
+			for (std::vector<std::string>::iterator it = data.begin(); it != data.end(); it++) {
+				unsigned short sl = (*it).size();
+				memcpy(&cdata[_length++], (char *)&sl, 1);
+				memcpy(&cdata[_length], (*it).c_str(), sl);
+				_length += sl;
+			}
+			
+			// Append Query Type and Class as last parameters, each one byte
+			memcpy(&cdata[_length++], (char *)&type, 1);
+			memcpy(&cdata[_length++], (char *)&_class, 1);
+			cdata[sizeof(cdata)] = '\0';
 			
 			amods::connections::Connection *connection = module_factory->getConnection("udp");
-			amods::connections::Request req = { "127.0.0.1", 53, 1, data };
+			amods::connections::Request req = { "127.0.0.1", 53, 1 };
 			amods::connections::Response response;
 			
 			std::cout << "DNS Start..." << std::endl;
+			connection->setData(&cdata[0], sizeof(cdata));
 			connection->SendRequest(req);
 			response = connection->GetResponse();
 			if (response.errnum > 0) {

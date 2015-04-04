@@ -23,6 +23,7 @@
 #include <vector>
 #include <memory>
 #include <iostream>
+#include <string.h>
 
 #include "../../module.h"
 
@@ -35,7 +36,6 @@ namespace amods {
 			std::string host;
 			unsigned int port;
 			unsigned char response_data:1;
-			std::string data;
 		};
 		struct Response {
 			std::string data;
@@ -50,14 +50,26 @@ namespace amods {
 				Factory *module_factory;
 				std::string moduleName;
 				std::string moduleDescription;
+				char *data;
 				
 			public:                     // see http://www.daniweb.com/software-development/cpp/threads/114299
-				virtual ~Connection() {}; // to prevent "undefined symbols" and "undefined reference to vtable of..." use {} here
+				virtual ~Connection() {   // to prevent "undefined symbols" and "undefined reference to vtable of..." use {} here
+					if (data != '\0') {
+						delete[] data;
+					}
+				};
 				virtual Connection* GetInstance(Factory *factory) = 0;
 				virtual const std::string &GetName() { return moduleName; };
 				virtual const std::string &GetDescription() { return moduleDescription; };
 				virtual void SendRequest(Request req) = 0;
 				virtual Response GetResponse() = 0;
+				virtual void setData(char *_data, unsigned int _length) {
+					if (_length > 0) {
+						data = new char[_length + 1];
+						memcpy(data, _data, _length);
+						data[_length + 1] = '\0';
+					}
+				};
 		};
 
 		class ConnectionManager

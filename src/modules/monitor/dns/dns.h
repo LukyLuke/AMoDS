@@ -23,11 +23,14 @@
 
 #include <string>
 #include <string.h>
+#include <inttypes.h>
 #include <cstdlib>
 #include <cstdio>
 #include <algorithm>
 #include <map>
 #include <vector>
+#include <stdio.h>
+#include <netinet/in.h>
 
 #include "../../../factory.h"
 #include "../../../helper/random.h"
@@ -81,24 +84,24 @@ namespace amods {
 				
 			protected:
 				struct DnsHeader {
-					unsigned short uid;
-					unsigned short type:1; // QR -  0: query, 1: response
-					unsigned short opcode:4; // OPCODE - 0: query, 1: iquery, 2: status, rest reserverd
-					unsigned short authoritative:1; // AA - Set to 1 in responses if the server is the authoritative one
-					unsigned short truncated:1; // TC - Set to 1 if the message was truncated due to too much data
-					unsigned short recursive:1; // RD - Recursion desired
-					unsigned short recursion:1; // RA - Recursion available
-					unsigned short _reserved:3; // Z - Reserved
-					unsigned short error:4; // RCODE - 0: No error, 1:Format error, 2: Server failure, 3: Name error, 4: Not implemented, 5: Refused, rest reserved
-					unsigned short num_questions; // QCOUNT
-					unsigned short num_answers; // ANCOUNT
-					unsigned short num_records; // NSCOUNT
-					unsigned short num_additional; // ARCOUNT
+					uint16_t uid;
+					uint8_t type:1; // QR -  0: query, 1: response
+					uint8_t opcode:4; // OPCODE - 0: query, 1: iquery, 2: status, rest reserverd
+					uint8_t authoritative:1; // AA - Set to 1 in responses if the server is the authoritative one
+					uint8_t truncated:1; // TC - Set to 1 if the message was truncated due to too much data
+					uint8_t recursive:1; // RD - Recursion desired
+					uint8_t recursion:1; // RA - Recursion available
+					uint8_t _reserved:3; // Z - Reserved
+					uint8_t error:4; // RCODE - 0: No error, 1:Format error, 2: Server failure, 3: Name error, 4: Not implemented, 5: Refused, rest reserved
+					uint16_t num_questions; // QCOUNT
+					uint16_t num_answers; // ANCOUNT
+					uint16_t num_records; // NSCOUNT
+					uint16_t num_additional; // ARCOUNT
 				};
 				struct DnsResponse {
 					DnsHeader header;
-					unsigned char type:4;
-					unsigned int ttl:8;
+					uint8_t type:4;
+					uint8_t ttl;
 					std::vector<std::string> data;
 				};
 				void ParseResponse(char *received, DnsResponse *res);

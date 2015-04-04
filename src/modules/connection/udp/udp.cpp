@@ -16,19 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <ctime>
-#include <cstdlib>
-#include <cstdio>
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <sys/syscall.h>
-#include <sys/time.h>
-#include <string.h>
+#include <bitset>
 
 #include "udp.h"
 #include "../../../factory.h"
@@ -128,10 +116,11 @@ namespace amods {
 			
 			// Send out the data and possibly wait dor returned data.
 			int bytes_wrote, bytes_read;
-			static char packet[MAX_DATA_SIZE];
+			char packet[MAX_DATA_SIZE];
 			char buffer[MAX_DATA_SIZE];
+			memcpy(&packet[0], data, MAX_DATA_SIZE - 1);
+			packet[MAX_DATA_SIZE] = '\0';
 			
-			strcpy(packet, request.data.substr(0, MAX_DATA_SIZE - 1).c_str());
 			bytes_wrote = sendto(sockraw, packet, sizeof(packet), 0, (struct sockaddr *)&destination, sizeof(struct sockaddr));
 			if (request.response_data > 0) {
 				bytes_read = recvfrom(sockraw, buffer, sizeof(buffer), 0, (struct sockaddr *)&received_from, (socklen_t *)sizeof(received_from));
@@ -139,7 +128,7 @@ namespace amods {
 				response.data.append(buffer);
 			}
 			
-			std::cout << "Request: " << request.data << std::endl;
+			std::cout << "Request: " << data << std::endl;
 		}
 		
 		Response UDP::GetResponse() {
