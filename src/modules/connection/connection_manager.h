@@ -24,6 +24,7 @@
 #include <memory>
 #include <iostream>
 #include <string.h>
+#include <stdint.h>
 
 #include "../../module.h"
 
@@ -51,6 +52,7 @@ namespace amods {
 				std::string moduleName;
 				std::string moduleDescription;
 				char *data;
+				unsigned int data_length;
 				
 			public:                     // see http://www.daniweb.com/software-development/cpp/threads/114299
 				virtual ~Connection() {   // to prevent "undefined symbols" and "undefined reference to vtable of..." use {} here
@@ -65,10 +67,23 @@ namespace amods {
 				virtual Response GetResponse() = 0;
 				virtual void setData(char *_data, unsigned int _length) {
 					if (_length > 0) {
+						data_length = _length + 1;
 						data = new char[_length + 1];
 						memcpy(data, _data, _length);
 						data[_length + 1] = '\0';
 					}
+				};
+				
+				static uint16_t ReverseBits(uint16_t num) {
+					unsigned int count = sizeof(num) * 8;
+					uint16_t reversed = 0, i;
+					for (i = 0; i < count; i++) {
+						// Check if bit at pos 'i' is set
+						if (num & (1 << i)) {
+							reversed |= (1 << (count - 1 - i)); // Set the bit at the reverse position
+						}
+					}
+					return reversed;
 				};
 		};
 
