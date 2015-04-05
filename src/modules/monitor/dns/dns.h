@@ -49,7 +49,7 @@ namespace amods {
 
 			private:
 				// Not a complete list, only the ones I think can be usefull
-				std::map<short, std::string> _types;
+				std::map<uint16_t, std::string> _types;
 				void _create_types() {
 					_types[1] = "A";
 					_types[2] = "NS";
@@ -72,8 +72,10 @@ namespace amods {
 					_types[253] = "MAILB";
 					_types[254] = "MAILA";
 					_types[255] = "*";
+					_types[256] = "URI";
+					_types[257] = "CAA";
 				};
-				std::map<short, std::string> _classes;
+				std::map<uint16_t, std::string> _classes;
 				void _create_classes() {
 					_classes[1] = "IN";
 					_classes[2] = "CS";
@@ -106,10 +108,10 @@ namespace amods {
 				};
 				void ParseResponse(char *received, DnsResponse *res);
 				void SendRequest(Response *resp);
-				short getType(std::string type) const;
-				std::string getType(short type) const;
-				short getClass(std::string type) const;
-				std::string getClass(short type) const;
+				uint16_t getType(std::string type) const;
+				std::string getType(uint16_t type) const;
+				uint16_t getClass(std::string type) const;
+				std::string getClass(uint16_t type) const;
 		};
 	}
 }
