@@ -115,11 +115,10 @@ namespace amods {
 			}
 			
 			// Send out the data and possibly wait dor returned data.
-			int bytes_wrote, bytes_read;
-			char packet[MAX_DATA_SIZE];
+			int bytes_wrote, bytes_read, _length = (data_length > MAX_DATA_SIZE) ? MAX_DATA_SIZE : data_length;
 			char buffer[MAX_DATA_SIZE];
-			memcpy(&packet[0], data, MAX_DATA_SIZE - 1);
-			packet[MAX_DATA_SIZE] = '\0';
+			char packet[_length];
+			memcpy(&packet[0], data, _length);
 			
 			bytes_wrote = sendto(sockraw, packet, sizeof(packet), 0, (struct sockaddr *)&destination, sizeof(struct sockaddr));
 			if (request.response_data > 0) {
