@@ -23,22 +23,37 @@
 
 namespace amods {
 	namespace connections {
+		/**
+		 * Constructor, you should use GetInstance() for this
+		 */
 		UDP::UDP(Factory *factory) {
 			module_factory = factory;
 			moduleName = "udp";
 			moduleDescription = "UDP Connection Handler";
 		}
 		
+		/**
+		 * Destructor
+		 */
 		UDP::~UDP() {
 			if (sockraw > 0) {
 				close(sockraw);
 			}
 		}
 		
+		/**
+		 * Create and return a new instance
+		 * @param Factory *factory Pointer to the Plugin-Factory
+		 * @return Connection A new UDP-Connection
+		 */
 		Connection* UDP::GetInstance(Factory *factory) {
 			return new UDP(factory);
 		}
 		
+		/**
+		 * Send out one request based on the System-Configuration
+		 * @param Request req Data-Structure to store connection results in
+		 */
 		void UDP::SendRequest(Request req) {
 			request = req;
 			
@@ -62,9 +77,8 @@ namespace amods {
 				destination.sin_family = AF_INET;
 			}
 			destination.sin_port = htons(request.port);
-			std::cout << "UDP-Connection: " << inet_ntoa(destination.sin_addr) << std::endl;
 			
-			// may 5 seconds for sending and receiving
+			// wait max 5 seconds for sending and receiving
 			struct timeval timeout;
 			timeout.tv_sec = 5;
 			timeout.tv_usec = 0;
@@ -119,17 +133,34 @@ namespace amods {
 			char buffer[MAX_DATA_SIZE];
 			char packet[_length];
 			memcpy(&packet[0], data, _length);
+			memset(&buffer, 0, MAX_DATA_SIZE);
 			
 			bytes_wrote = sendto(sockraw, packet, sizeof(packet), 0, (struct sockaddr *)&destination, sizeof(struct sockaddr));
-			if (request.response_data > 0) {
-				bytes_read = recvfrom(sockraw, buffer, sizeof(buffer), 0, (struct sockaddr *)&received_from, (socklen_t *)sizeof(received_from));
-				response.data.clear();
-				response.data.append(buffer);
+			if (bytes_wrote <= 0) {
+				response.errnum = errno;
+				response.errmsg = strerror(errno);
+				response.error = "Error send data to host";
 			}
-			
-			std::cout << "Request: " << data << std::endl;
+			else if (request.response_data > 0) {
+				socklen_t slen = (socklen_t)sizeof(received_from);
+				bytes_read = recvfrom(sockraw, buffer, sizeof(buffer), 0, (struct sockaddr *)&received_from, &slen);
+				if (bytes_read > 0) {
+					response.data = new char[bytes_read];
+					memcpy(response.data, &buffer, bytes_read);
+				}
+				else {
+					response.errnum = errno;
+					response.errmsg = strerror(errno);
+					response.error = "Error receive data from host";
+				}
+				response.data_length = bytes_read > 0 ? bytes_read : 0;
+			}
 		}
 		
+		/**
+		 * Get the response from the previous request
+		 * @return Response
+		 */
 		Response UDP::GetResponse() {
 			return response;
 		}

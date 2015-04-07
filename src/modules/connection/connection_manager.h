@@ -39,7 +39,8 @@ namespace amods {
 			unsigned char response_data:1;
 		};
 		struct Response {
-			std::string data;
+			char *data;
+			unsigned int data_length;
 			std::string error;
 			int errnum;
 			std::string errmsg;
