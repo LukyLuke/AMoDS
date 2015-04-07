@@ -19,6 +19,20 @@
 #ifndef ECHO_MONITOR_H
 #define ECHO_MONITOR_H
 
+#include <string>
+#include <ctime>
+#include <cstdlib>
+#include <cstdio>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <sys/syscall.h>
+#include <sys/time.h>
+#include <string.h>
 #include <netinet/in.h>
 
 #include "../monitor_manager.h"

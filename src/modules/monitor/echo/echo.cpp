@@ -16,21 +16,6 @@
 		along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <string>
-#include <ctime>
-#include <cstdlib>
-#include <cstdio>
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <sys/syscall.h>
-#include <sys/time.h>
-#include <string.h>
-
 #include "echo.h"
 #include "../../../factory.h"
 
@@ -50,11 +35,6 @@ namespace amods {
 			if (sockraw > 0) {
 				close(sockraw);
 			}
-			
-			if (res.error.length() > 0) {
-				std::cerr << "ICPM-Error: " << res.error << std::endl;
-			}
-			std::cout << "min: " << res.tmin << " / max: " << res.tmax << " / nrecv: " << res.nreceived << " / ntrans: " << res.ntransmitted << std::endl;
 		}
 
 		Response Echo::BeginMonitor() {
@@ -119,7 +99,6 @@ namespace amods {
 				destination.sin_family = AF_INET;
 			}
 			destination.sin_port = htons(53);
-			std::cout << "(105) ping: " << inet_ntoa(destination.sin_addr) << std::endl;
 			
 			// may 5 seconds for sending and receiving
 			struct timeval timeout;
@@ -138,7 +117,7 @@ namespace amods {
 					case ENOBUFS:         res.error = "Unable to create socket (insufficient buffers available)"; break;
 					case ENOMEM:          res.error = "Unable to create socket (insufficient memory available)"; break;
 					case EPROTONOSUPPORT: res.error = "Unable to create socket (protocol or type not supported)"; break;
-					default:              res.error = "Unable to create socket (unknown)"; std::cout << errno << std::endl; break;
+					default:              res.error = "Unable to create socket (unknown)"; break;
 				}
 				return;
 			}
@@ -173,25 +152,20 @@ namespace amods {
 					MicroSleep(timeout_ms);
 				}
 				
-				// Read data after the request was sent.
+				// Send out the ECHO-Request and receive response data
 				SendRequest();
-				
-				// The function recvfrom throws an error EFAULT (Bad Address) and returnd -1 but receives data.
-				// Therefore we reset the receiving buffer and check if we got some data.
-				recv_buffer[0] = '\0';
-				if ((bytes_read = recvfrom(sockraw, recv_buffer, MAX_PACKET_SIZE, 0, (struct sockaddr *)&received_from, (socklen_t *)sizeof(received_from))) < 0) {
-					if ((errno == EAGAIN) || (recv_buffer[0] != '\0')) {
-						bytes_read = PACKET_SIZE;
-					}
-					else {
-						std::cout << "Read bytes: " << bytes_read << ", should be " << PACKET_SIZE << std::endl;
-						std::cout << "Error (" << errno << "):" << strerror(errno) << std::endl;
-						continue;
-					}
-				}
+				socklen_t slen = (socklen_t)sizeof(received_from);
+				bytes_read = recvfrom(sockraw, recv_buffer, MAX_PACKET_SIZE, 0, (struct sockaddr *)&received_from, &slen);
 				
 				// Decode Data and update the result
-				ParseResponse(recv_buffer, bytes_read, &received_from);
+				if (bytes_read > 0) {
+					ParseResponse(recv_buffer, bytes_read, &received_from);
+				}
+				else {
+					res.error = "Error receive ECHO data from host";
+					res.errnum = errno;
+					res.errmsg = strerror(errno);
+				}
 			}
 		}
 
@@ -229,7 +203,7 @@ namespace amods {
 			// Send the packet and check for an error
 			bytes_wrote = sendto(sockraw, icmp_packet, packet_size, 0, (struct sockaddr *)&destination, sizeof(struct sockaddr));
 			if (bytes_wrote < 0) {
-				res.error = "Error sending data to host";
+				res.error = "Error sending ECHO data to host";
 				res.errnum = errno;
 				res.errmsg = strerror(errno);
 				return bytes_wrote;
@@ -289,7 +263,6 @@ namespace amods {
 			// Checkfor a valid Response, icmp header starts after the ip header
 			icmp_header = (struct icmphdr *)(received + ip_header_length);
 			if (icmp_header->i_type != (EchoCodes)echo_reply) {
-				std::cout << "Err type: " << (unsigned int)icmp_header->i_type << "!=" << (EchoCodes)echo_reply << std::endl;
 				res.errnum = EPROTOTYPE;
 				res.errmsg = "Wrong ICMP type received: ";
 				res.errmsg.append((char *)(icmp_header->i_type));
