@@ -57,6 +57,7 @@ namespace amods {
 		* @param Response *resp The reponse object with statistical data
 		*/
 		void Dns::SendRequest(Response *resp) {
+			struct timeval t_begin, t_end;
 			std::string _key, domain;
 			uint16_t type = 1, _class = 1;
 			uint16_t header_size = sizeof(struct DnsHeader);
@@ -130,30 +131,83 @@ namespace amods {
 			memcpy(&buffer[_length], (char *)&_class, sizeof(uint16_t));
 			_length += sizeof(uint16_t);
 			
-			amods::connections::Connection *connection = module_factory->getConnection("udp");
-			amods::connections::Request req = { "127.0.0.1", 53, 1 };
+			// Submit the request
+			System sys = GetSystem();
 			amods::connections::Response response;
+			amods::connections::Request req = { sys.address, 53, 1 };
+			amods::connections::Connection *connection = module_factory->getConnection("udp");
 			
-			std::cout << "DNS Start..." << std::endl;
+			gettimeofday(&t_begin, NULL);
 			connection->setData(&buffer[0], sizeof(buffer));
 			connection->SendRequest(req);
 			response = connection->GetResponse();
+			gettimeofday(&t_end, NULL);
 			if (response.errnum > 0) {
 				std::cout << response.error << std::endl;
 			}
-			std::cout << response.data << std::endl;
-			std::cout << "DNS END..." << std::endl;
 			
+			// Parse the response if there is one
+			if (response.data_length > 0) {
+				DnsResponse r;
+				r.roundtrip = ((t_end.tv_sec * 1000.0) + (t_end.tv_usec / 1000.0)) - ((t_begin.tv_sec * 1000.0) + (t_begin.tv_usec / 1000.0));
+				ParseResponse(response.data, response.data_length, &r);
+			}
+			
+			delete [] response.data;
 			delete connection;
 		}
 
 		/**
 		* Parse the Response from the DNS Server
 		* @param char *received Received Data
+		* @param uint16_t length Number of chars/bytes received
 		* @param struct DnsResponse *res Response is saved in here
 		*/
-		void Dns::ParseResponse(char *received, DnsResponse *res) {
+		void Dns::ParseResponse(char *received, uint16_t length, DnsResponse *res) {
+			// Split out the DNS header
+			struct DnsHeader *header;
+			char *data = (char *)(received + sizeof(DnsHeader));
 			
+			// The two bytes with the flags need to be inverted to store them 1:1 in the struct
+			uint16_t *flags = (uint16_t *)(received + 2); // First two bytes is the UID
+			*flags = ntohs(*flags);
+			*flags = amods::connections::Connection::ReverseBits(*flags);
+			
+			header = (struct DnsHeader *)received;
+			header->num_questions = ntohs(header->num_questions);
+			header->num_answers = ntohs(header->num_answers);
+			header->num_records = ntohs(header->num_records);
+			header->num_additional = ntohs(header->num_additional);
+			
+			// Parse the answer if no error occured
+			if (header->error == 0) {
+				uint16_t i;
+				uint8_t l;
+				std::string part;
+				
+				// First get the questioned domains: One octet for the length followed by that num of chars
+				// After the final NULL byte, the type and class, each two bytes, follow
+				for (i = 0; i < header->num_questions; i++) {
+					l = *data;
+					std::pair<std::string, std::string> question = std::make_pair<std::string, std::string>("query", "");
+					while (l > 0) {
+						data++;
+						question.second.append(std::string(data, l)).append(".");
+						data += l;
+						l = *data;
+					}
+					res->data.push_back(question);
+					
+					// Type and class, each 16bits - not interresting for now
+					data++;
+					data += 4;
+				}
+				
+				// Check for answers
+				for (i = 0; i < header->num_answers; i++) {
+					
+				}
+			}
 		}
 
 		/**

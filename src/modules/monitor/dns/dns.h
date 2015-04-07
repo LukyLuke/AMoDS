@@ -29,8 +29,10 @@
 #include <algorithm>
 #include <map>
 #include <vector>
+#include <utility>
 #include <stdio.h>
 #include <netinet/in.h>
+#include <sys/time.h>
 
 #include "../../../factory.h"
 #include "../../../helper/random.h"
@@ -103,10 +105,10 @@ namespace amods {
 				struct DnsResponse {
 					DnsHeader header;
 					uint8_t type:4;
-					uint8_t ttl;
-					std::vector<std::string> data;
+					uint8_t roundtrip;
+					std::vector< std::pair<std::string, std::string> > data;
 				};
-				void ParseResponse(char *received, DnsResponse *res);
+				void ParseResponse(char *received, uint16_t length, DnsResponse *res);
 				void SendRequest(Response *resp);
 				uint16_t getType(std::string type) const;
 				std::string getType(uint16_t type) const;
