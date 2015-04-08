@@ -252,11 +252,13 @@ namespace amods {
 			}
 			else {
 				cnt = *_data;
-				_data++;
-				domain->append(std::string(_data, cnt)).append(".");
-				cnt++;
-				l += cnt;
-				l += extractDomainName(data, length, offset + cnt, domain);
+				if (cnt + offset <= length) {
+					_data++;
+					domain->append(std::string(_data, cnt)).append(".");
+					cnt++;
+					l += cnt;
+					l += extractDomainName(data, length, offset + cnt, domain);
+				}
 			}
 			return l;
 		}
