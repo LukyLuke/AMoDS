@@ -181,9 +181,9 @@ namespace amods {
 			
 			// Parse the answer if no error occured
 			if (header->error == 0) {
-				uint16_t i;
+				uint16_t i, j, offset;
 				uint8_t l;
-				std::string part;
+				std::string domain;
 				
 				// First get the questioned domains: One octet for the length followed by that num of chars
 				// After the final NULL byte, the type and class, each two bytes, follow
@@ -196,18 +196,69 @@ namespace amods {
 						data += l;
 						l = *data;
 					}
+					data++;
 					res->data.push_back(question);
 					
 					// Type and class, each 16bits - not interresting for now
-					data++;
 					data += 4;
 				}
 				
 				// Check for answers
 				for (i = 0; i < header->num_answers; i++) {
+					offset = (uint16_t)(data - received);
+					j = extractDomainName(received, length, offset, &domain);
+					data += j;
 					
+					std::cout << "length: " << j << std::endl;
+					std::cout << "Dom: " << domain << std::endl;
 				}
 			}
+		}
+
+		/**
+		 * Extract the domain name given at the offset.
+		 * The Domain Name can be compressed, therefore this function extracts
+		 * the name recursively from the whole data part.
+		 * 
+		 * @param char *data The complete data received from the server
+		 * @param uint16_t length The length of *data
+		 * @param uint16_t offset Byte where the domain begins
+		 * @param std::string *domain Pointer to the domain string
+		 * @return std::string
+		 */
+		uint16_t Dns::extractDomainName(char *data, uint16_t length, uint16_t offset, std::string *domain) const {
+			// Not read over the received data - if this happens, just return...
+			if (offset >= length) {
+				return 0;
+			}
+			
+			uint16_t l = 0;
+			uint8_t cnt;
+			char *_data = data + offset;
+			
+			// If there is nothing more (NULL-Termination), return
+			if ((short)*_data == 0) {
+				return 1;
+			}
+			
+			// If there are the first two bits set, this is an offset, else it's the length of characters to read
+			// this can happen after each domain part
+			if ((*_data & 0xC0) == 0xC0) {
+				offset = ntohs(*(uint16_t *)_data - 0xC0);
+				l = 2;
+				// There is no saying about if this can occur in the middle of a domain name or not
+				// therefore I assume this is not possible and l is only 2...
+				extractDomainName(data, length, offset, domain);
+			}
+			else {
+				cnt = *_data;
+				_data++;
+				domain->append(std::string(_data, cnt)).append(".");
+				cnt++;
+				l += cnt;
+				l += extractDomainName(data, length, offset + cnt, domain);
+			}
+			return l;
 		}
 
 		/**

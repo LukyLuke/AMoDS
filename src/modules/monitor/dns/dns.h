@@ -114,6 +114,7 @@ namespace amods {
 				std::string getType(uint16_t type) const;
 				uint16_t getClass(std::string type) const;
 				std::string getClass(uint16_t type) const;
+				uint16_t extractDomainName(char *data, uint16_t length, uint16_t offset, std::string *domain) const;
 		};
 	}
 }
