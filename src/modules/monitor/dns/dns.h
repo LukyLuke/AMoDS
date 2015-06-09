@@ -23,6 +23,7 @@
 
 #include <string>
 #include <string.h>
+#include <sstream>
 #include <inttypes.h>
 #include <cstdlib>
 #include <cstdio>

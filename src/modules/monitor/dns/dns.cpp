@@ -181,9 +181,10 @@ namespace amods {
 			
 			// Parse the answer if no error occured
 			if (header->error == 0) {
-				uint16_t i, j, offset;
+				uint32_t _ttl;
+				uint16_t i, j, rl, offset, _type, _class;
 				uint8_t l;
-				std::string domain;
+				std::string domain, rdata;
 				
 				// First get the questioned domains: One octet for the length followed by that num of chars
 				// After the final NULL byte, the type and class, each two bytes, follow
@@ -200,17 +201,59 @@ namespace amods {
 					res->data.push_back(question);
 					
 					// Type and class, each 16bits - not interresting for now
-					data += 4;
+					_type = ntohs(*(uint16_t *)data);
+					data += 2;
+					_class = ntohs(*(uint16_t *)data);
+					data += 2;
 				}
 				
 				// Check for answers
 				for (i = 0; i < header->num_answers; i++) {
+					// The Domain Name can be linked to other parts in the received data.
+					// Terefore we need the offset where the current name record begins and
+					// we also need the whole received data to parse out the domain Name
 					offset = (uint16_t)(data - received);
 					j = extractDomainName(received, length, offset, &domain);
 					data += j;
 					
+					// After the Domain: Type (2), Class (2), TTL (4), DataLength (2), Data (DataLength)
+					_type = ntohs(*(uint16_t *)data);
+					data += 2;
+					_class = ntohs(*(uint16_t *)data);
+					data += 2;
+					_ttl = ntohl(*(uint32_t *)data);
+					data += 4;
+					
+					// Next part ist the data, prefixed with on byte length
+					// TODO This shold be done for the other types as well
+					rl = ntohs(*(uint16_t *)data);
+					data += 2;
+					switch (_type) {
+						case 1: // A-Record
+							for (j = 0; j < rl; j++) {
+								if (!rdata.empty()) {
+									rdata.append(".");
+								}
+								std::stringstream stream;
+								l = *data;
+								stream << (unsigned short)l;
+								rdata.append(stream.str());
+								data++;
+							}
+							break;
+							
+						case 16: // TXT-Record
+							rdata.append(std::string(*data, rl));
+							data += rl;
+							break;
+					}
+					
 					std::cout << "length: " << j << std::endl;
 					std::cout << "Dom: " << domain << std::endl;
+					std::cout << "Type: " << _type << std::endl;
+					std::cout << "Class: " << _class << std::endl;
+					std::cout << "TTL: " << _ttl << std::endl;
+					std::cout << "rdata: " << rdata << std::endl;
 				}
 			}
 		}
