@@ -107,6 +107,7 @@ namespace amods {
 					DnsHeader header;
 					uint8_t type:4;
 					uint8_t roundtrip;
+					uint16_t ttl;
 					std::vector< std::pair<std::string, std::string> > data;
 				};
 				void ParseResponse(char *received, uint16_t length, DnsResponse *res);

@@ -235,8 +235,7 @@ namespace amods {
 									rdata.append(".");
 								}
 								std::stringstream stream;
-								l = *data;
-								stream << (unsigned short)l;
+								stream << (unsigned short)(uint8_t)(*data);
 								rdata.append(stream.str());
 								data++;
 							}
@@ -248,12 +247,11 @@ namespace amods {
 							break;
 					}
 					
-					std::cout << "length: " << j << std::endl;
-					std::cout << "Dom: " << domain << std::endl;
-					std::cout << "Type: " << _type << std::endl;
-					std::cout << "Class: " << _class << std::endl;
-					std::cout << "TTL: " << _ttl << std::endl;
-					std::cout << "rdata: " << rdata << std::endl;
+					// Append all data to the result
+					res->ttl = _ttl;
+					res->data.push_back(std::make_pair<std::string, std::string>("domain", domain));
+					res->data.push_back(std::make_pair<std::string, std::string>("type", _types[_type]));
+					res->data.push_back(std::make_pair<std::string, std::string>("data", rdata));
 				}
 			}
 		}
