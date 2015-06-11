@@ -38,28 +38,42 @@ namespace amods {
 		}
 
 		Response Echo::BeginMonitor() {
+			System sys = GetSystem();
 			Response resp;
-			resp.num = GetSystem().num;
-			resp.min = 0.0;
+			resp.num = sys.num;
+			resp.min = 999999.9;
 			resp.max = 0.0;
 			resp.avg = 0.0;
-			resp.times[GetSystem().num];
+			resp.times.resize(0);
+			//resp.data.resize(0);
+			resp.error.resize(0);
 			
 			// ICMP Header-ID to check for a valid response
 			_icmp_header_id = (unsigned short) syscall(SYS_gettid);
-			
-			if (system.address.empty()) {
+			if (sys.address.empty()) {
 				return resp;
 			}
-			if (!system.num) {
-				system.num = 1;
-			}
-			if (!system.timeout_ms) {
-				system.timeout_ms = 1000;
-			}
 			
-			// Create the statistics and start the Monitoring
-			SendEchoRequest(system.num, system.timeout_ms);
+			// Send all echo Request
+			SendEchoRequest(sys.num, sys.timeout_ms, &resp);
+			
+			// Statistics for the response
+			std::stringstream stream;
+			resp.data.resize(resp.times.size());
+			for (size_t num = 0; num < resp.times.size(); num++) {
+				if (resp.times[num] > resp.max) {
+					resp.max = resp.times[num];
+				}
+				if (resp.times[num] < resp.min) {
+					resp.min = resp.times[num];
+				}
+				resp.avg += resp.times[num];
+				
+				stream << resp.times[num];
+				resp.data[num].insert(std::make_pair<std::string, std::string>("ttl", stream.str()));
+				stream.clear();
+			}
+			resp.avg = resp.avg / sys.num;
 			
 			return resp;
 		}
@@ -67,17 +81,11 @@ namespace amods {
 		/**
 		* Send 'num' EchoPings
 		* @param unsigned int num Number of EchoRequests to send
+		* @param unsigned int timeout_ms Number microseconds to pause between the Request
+		* @param Response *resp The response data struct
 		*/
-		void Echo::SendEchoRequest(unsigned int num, unsigned int timeout_ms) {
+		void Echo::SendEchoRequest(unsigned int num, unsigned int timeout_ms, Response *resp) {
 			seq_num = 1; // Initial sequence number for the icmp package
-			
-			// Standard-Response
-			res.tsum = 0.0;
-			res.tmin = 99999999.9;
-			res.tmax = 0.0;
-			res.nreceived = 0;
-			res.ntransmitted = 0;
-			res.error = "";
 			
 			// Check for a valid Destination
 			unsigned int address;
@@ -86,7 +94,7 @@ namespace amods {
 				address = inet_addr(system.address.c_str());
 			}
 			if (!host && (address == INADDR_NONE)) {
-				res.error = "Host is not valid";
+				resp->error.push_back(std::make_pair<unsigned int, std::string>(EDESTADDRREQ, "Host is not valid"));
 				return;
 			}
 			
@@ -109,37 +117,37 @@ namespace amods {
 			sockraw = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
 			if (sockraw < 0) {
 				switch (errno) {
-					case EPERM:           res.error = "Unable to create socket (no root)"; break;
-					case EACCES:          res.error = "Unable to create socket (no permission)"; break;
-					case EAFNOSUPPORT:    res.error = "Unable to create socket (family not supported)"; break;
-					case EINVAL:          res.error = "Unable to create socket (unknown protocol/type)"; break;
-					case EMFILE:          res.error = "Unable to create socket (too many open files or processes)"; break;
-					case ENOBUFS:         res.error = "Unable to create socket (insufficient buffers available)"; break;
-					case ENOMEM:          res.error = "Unable to create socket (insufficient memory available)"; break;
-					case EPROTONOSUPPORT: res.error = "Unable to create socket (protocol or type not supported)"; break;
-					default:              res.error = "Unable to create socket (unknown)"; break;
+					case EPERM: resp->error.push_back(std::make_pair<unsigned int, std::string>(EPERM, "Unable to create socket (no root)")); break;
+					case EACCES: resp->error.push_back(std::make_pair<unsigned int, std::string>(EACCES, "Unable to create socket (no permission)")); break;
+					case EAFNOSUPPORT: resp->error.push_back(std::make_pair<unsigned int, std::string>(EAFNOSUPPORT, "Unable to create socket (family not supported)")); break;
+					case EINVAL: resp->error.push_back(std::make_pair<unsigned int, std::string>(EINVAL, "Unable to create socket (unknown protocol/type)")); break;
+					case EMFILE: resp->error.push_back(std::make_pair<unsigned int, std::string>(EMFILE, "Unable to create socket (too many open files or processes)")); break;
+					case ENOBUFS: resp->error.push_back(std::make_pair<unsigned int, std::string>(ENOBUFS, "Unable to create socket (insufficient buffers available)")); break;
+					case ENOMEM: resp->error.push_back(std::make_pair<unsigned int, std::string>(ENOMEM, "Unable to create socket (insufficient memory available)")); break;
+					case EPROTONOSUPPORT: resp->error.push_back(std::make_pair<unsigned int, std::string>(EPROTONOSUPPORT, "Unable to create socket (protocol or type not supported)")); break;
+					default: resp->error.push_back(std::make_pair<unsigned int, std::string>(EPIPE, "Unable to create socket (unknown)")); break;
 				}
 				return;
 			}
 			if (setsockopt(sockraw, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout)) < 0) {
 				switch (errno) {
-					case EBADF:       res.error = "Unable to set ReceiveTimeout (not a valid socket)"; break;
-					case EFAULT:      res.error = "Unable to set ReceiveTimeout (invalid memory for value)"; break;
-					case EINVAL:      res.error = "Unable to set ReceiveTimeout (invalid length)"; break;
-					case ENOPROTOOPT: res.error = "Unable to set ReceiveTimeout (unknown option on SOL_SOCKET level)"; break;
-					case ENOTSOCK:    res.error = "Unable to set ReceiveTimeout (socked var defines a file, not a socket)"; break;
-					default:          res.error = "Unable to set ReceiveTimeout (unknown)"; break;
+					case EBADF: resp->error.push_back(std::make_pair<unsigned int, std::string>(EBADF, "Unable to set ReceiveTimeout (not a valid socket)")); break;
+					case EFAULT: resp->error.push_back(std::make_pair<unsigned int, std::string>(EFAULT, "Unable to set ReceiveTimeout (invalid memory for value)")); break;
+					case EINVAL: resp->error.push_back(std::make_pair<unsigned int, std::string>(EINVAL, "Unable to set ReceiveTimeout (invalid length)")); break;
+					case ENOPROTOOPT: resp->error.push_back(std::make_pair<unsigned int, std::string>(ENOPROTOOPT, "Unable to set ReceiveTimeout (unknown option on SOL_SOCKET level)")); break;
+					case ENOTSOCK: resp->error.push_back(std::make_pair<unsigned int, std::string>(ENOTSOCK, "Unable to set ReceiveTimeout (socked var defines a file, not a socket)")); break;
+					default: resp->error.push_back(std::make_pair<unsigned int, std::string>(EPIPE, "Unable to set ReceiveTimeout (unknown)")); break;
 				}
 				return;
 			}
 			if (setsockopt(sockraw, SOL_SOCKET, SO_SNDTIMEO, (char*)&timeout, sizeof(timeout)) < 0) {
 				switch (errno) {
-					case EBADF:       res.error = "Unable to set SendTimeout (not a valid socket)"; break;
-					case EFAULT:      res.error = "Unable to set SendTimeout (invalid memory for value)"; break;
-					case EINVAL:      res.error = "Unable to set SendTimeout (invalid length)"; break;
-					case ENOPROTOOPT: res.error = "Unable to set SendTimeout (unknown option on SOL_SOCKET level)"; break;
-					case ENOTSOCK:    res.error = "Unable to set SendTimeout (socked var defines a file, not a socket)"; break;
-					default:          res.error = "Unable to set SendTimeout (unknown)"; break;
+					case EBADF: resp->error.push_back(std::make_pair<unsigned int, std::string>(EBADF, "Unable to set SendTimeout (not a valid socket)")); break;
+					case EFAULT: resp->error.push_back(std::make_pair<unsigned int, std::string>(EFAULT, "Unable to set SendTimeout (invalid memory for value)")); break;
+					case EINVAL: resp->error.push_back(std::make_pair<unsigned int, std::string>(EINVAL, "Unable to set SendTimeout (invalid length)")); break;
+					case ENOPROTOOPT: resp->error.push_back(std::make_pair<unsigned int, std::string>(ENOPROTOOPT, "Unable to set SendTimeout (unknown option on SOL_SOCKET level)")); break;
+					case ENOTSOCK: resp->error.push_back(std::make_pair<unsigned int, std::string>(ENOTSOCK, "Unable to set SendTimeout (socked var defines a file, not a socket)")); break;
+					default: resp->error.push_back(std::make_pair<unsigned int, std::string>(EPIPE, "Unable to set SendTimeout (unknown)")); break;
 				}
 				return;
 			}
@@ -153,18 +161,16 @@ namespace amods {
 				}
 				
 				// Send out the ECHO-Request and receive response data
-				SendRequest();
+				SendRequest(resp);
 				socklen_t slen = (socklen_t)sizeof(received_from);
 				bytes_read = recvfrom(sockraw, recv_buffer, MAX_PACKET_SIZE, 0, (struct sockaddr *)&received_from, &slen);
 				
 				// Decode Data and update the result
 				if (bytes_read > 0) {
-					ParseResponse(recv_buffer, bytes_read, &received_from);
+					ParseResponse(recv_buffer, bytes_read, &received_from, resp);
 				}
 				else {
-					res.error = "Error receive ECHO data from host";
-					res.errnum = errno;
-					res.errmsg = strerror(errno);
+					resp->error.push_back(std::make_pair<unsigned int, std::string>(errno, strerror(errno)));
 				}
 			}
 		}
@@ -174,9 +180,11 @@ namespace amods {
 		 * 
 		 * The first 8 bytes are reserved for a timeval struct to calculate the
 		 * round-trip of the package.
+		 * 
+		 * @param Response *resp The response data struct
 		 * @return int Number of bytes written
 		 */
-		int Echo::SendRequest() {
+		int Echo::SendRequest(Response *resp) {
 			int bytes_wrote, i, packet_size = DEF_PACKET_SIZE + 8;
 			
 			// icmp_packet is the data which is sent. The first part is for the ICMP-Header
@@ -203,12 +211,9 @@ namespace amods {
 			// Send the packet and check for an error
 			bytes_wrote = sendto(sockraw, icmp_packet, packet_size, 0, (struct sockaddr *)&destination, sizeof(struct sockaddr));
 			if (bytes_wrote < 0) {
-				res.error = "Error sending ECHO data to host";
-				res.errnum = errno;
-				res.errmsg = strerror(errno);
+				resp->error.push_back(std::make_pair<unsigned int, std::string>(errno, strerror(errno)));
 				return bytes_wrote;
 			}
-			res.ntransmitted++;
 			return bytes_wrote;
 		}
 
@@ -240,8 +245,9 @@ namespace amods {
 		* @param char *received Received Data
 		* @param int bytes_read Number of received bytes
 		* @param struct sockaddr_in *from Where is this response from_length
+		* @param Response *resp The response data struct
 		*/
-		void Echo::ParseResponse(char *received, int bytes_read, struct sockaddr_in *from) {
+		void Echo::ParseResponse(char *received, int bytes_read, struct sockaddr_in *from, Response *resp) {
 			struct iphdr *ip_header;
 			struct icmphdr *icmp_header;
 			unsigned short ip_header_length;
@@ -254,8 +260,7 @@ namespace amods {
 			
 			// ICMP-Header is 8 Bytes, so we must have received more than the IP-Header + Icmp-Header length
 			if (bytes_read < ICMP_HEADER_LENGTH + ip_header_length) {
-				res.errnum = EMSGSIZE;
-				res.errmsg = "Too few bytes received";
+				resp->error.push_back(std::make_pair<unsigned int, std::string>(EMSGSIZE, "Too few bytes received"));
 				return;
 			}
 			bytes_read -= ip_header_length;
@@ -263,16 +268,15 @@ namespace amods {
 			// Checkfor a valid Response, icmp header starts after the ip header
 			icmp_header = (struct icmphdr *)(received + ip_header_length);
 			if (icmp_header->i_type != (EchoCodes)echo_reply) {
-				res.errnum = EPROTOTYPE;
-				res.errmsg = "Wrong ICMP type received: ";
-				res.errmsg.append((char *)(icmp_header->i_type));
+				resp->times.push_back(GetSystem().timeout_ms);
+				resp->error.push_back(std::make_pair<unsigned int, std::string>(EPROTOTYPE, std::string("Wrong ICMP type received: ").append((char *)(icmp_header->i_type))));
 				return;
 			}
 			
 			// This is not our package
 			if (icmp_header->i_id != _icmp_header_id) {
-				res.errnum = EPROTO;
-				res.errmsg = "Someone elses package received.";
+				resp->times.push_back(GetSystem().timeout_ms);
+				resp->error.push_back(std::make_pair<unsigned int, std::string>(EPROTO, "Someone elses package received"));
 				return;
 			}
 			
@@ -281,10 +285,7 @@ namespace amods {
 			trip_time = ((tstamp.tv_sec * 1000.0) + (tstamp.tv_usec / 1000.0)) - ((roundtrip->tv_sec * 1000.0) + (roundtrip->tv_usec / 1000.0));
 			
 			// Set PingStatistics values
-			res.tsum += trip_time;
-			res.tmin = (trip_time < res.tmin) ? trip_time : res.tmin;
-			res.tmax = (trip_time > res.tmax) ? trip_time : res.tmax;
-			res.nreceived++;
+			resp->times.push_back(trip_time);
 		}
 
 		/**

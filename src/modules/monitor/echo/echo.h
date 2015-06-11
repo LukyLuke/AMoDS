@@ -20,6 +20,7 @@
 #define ECHO_MONITOR_H
 
 #include <string>
+#include <sstream>
 #include <ctime>
 #include <cstdlib>
 #include <cstdio>
@@ -62,7 +63,7 @@ namespace amods {
 				struct pingstat {
 					double tmin;
 					double tmax;
-					double tsum;
+					std::vector<double> tsum;
 					int ntransmitted;
 					int nreceived;
 					int errnum;
@@ -79,7 +80,7 @@ namespace amods {
 				unsigned short seq_num;
 				int sockraw;
 				struct sockaddr_in destination, received_from;
-				int SendRequest();
+				int SendRequest(amods::monitor::Response* resp);
 
 			protected:
 				struct iphdr {
@@ -116,16 +117,11 @@ namespace amods {
 				static const unsigned int MAX_PACKET_SIZE = 4096;
 				static const unsigned int PACKET_SIZE = (sizeof(struct icmphdr) + DEF_PACKET_SIZE);
 
-				pingstat res;
 				unsigned char _icmp_header_id;
 
-				void SendEchoRequest() {
-					return SendEchoRequest(1, 1000);
-				};
-				void SendEchoRequest(unsigned int num);
-				void SendEchoRequest(unsigned int num, unsigned int timeout_ms);
+				void SendEchoRequest(unsigned int num, unsigned int timeout_ms, amods::monitor::Response* resp);
 				unsigned short Checksum(unsigned short *buffer, int size);
-				void ParseResponse(char *received, int bytes_read, struct sockaddr_in *from);
+				void ParseResponse(char* received, int bytes_read, sockaddr_in* from, amods::monitor::Response* resp);
 				void MicroSleep(unsigned int ms);
 		};
 
