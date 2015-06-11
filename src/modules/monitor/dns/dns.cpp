@@ -166,17 +166,15 @@ namespace amods {
 			connection->SendRequest(req);
 			response = connection->GetResponse();
 			gettimeofday(&t_end, NULL);
-			if (response.errnum > 0) {
-				std::cout << response.error << std::endl;
-			}
+			
+			DnsResponse dns_resp;
+			dns_resp.roundtrip = ((t_end.tv_sec * 1000.0) + (t_end.tv_usec / 1000.0)) - ((t_begin.tv_sec * 1000.0) + (t_begin.tv_usec / 1000.0));
 			
 			// Parse the response or add an error message to the response instead
-			std::stringstream stream;
-			DnsResponse dns_resp;
-			if (response.data_length > 0) {
-				dns_resp.roundtrip = ((t_end.tv_sec * 1000.0) + (t_end.tv_usec / 1000.0)) - ((t_begin.tv_sec * 1000.0) + (t_begin.tv_usec / 1000.0));
+			if ((response.errnum == 0) && (response.data_length > 0)) {
 				ParseResponse(response.data, response.data_length, &dns_resp);
 				
+				std::stringstream stream;
 				stream << dns_resp.ttl;
 				resp->times[num] = dns_resp.roundtrip;
 				resp->data[num]["ttl"] = stream.str();
@@ -186,8 +184,8 @@ namespace amods {
 				}
 			}
 			else {
-				resp->times[num] = 0;
-				resp->data[num].insert(std::make_pair<std::string, std::string>("error", ""));
+				resp->times[num] = dns_resp.roundtrip;
+				resp->data[num].insert(std::make_pair<std::string, std::string>("error", response.errmsg));
 				resp->error[num] = std::make_pair<unsigned int, std::string>(response.errnum, response.error);
 			}
 			
