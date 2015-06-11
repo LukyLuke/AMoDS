@@ -87,38 +87,22 @@ namespace amods {
 		moduleFactory = new Factory;
 		moduleFactory->LoadPlugin(std::string("lib/libudp.so"));
 		moduleFactory->LoadPlugin(std::string("lib/libdns.so"));
-		//moduleFactory->LoadPlugin(std::string("lib/libecho.so"));
+		moduleFactory->LoadPlugin(std::string("lib/libecho.so"));
 		
-		/*amods::connections::Connection *con = moduleFactory->getConnection("udp");
-		amods::connections::Request req = { "208.67.222.222", 53, 1, "test dns lookup" };
-		amods::connections::Response resp;
+		//std::string mon = "echo";
+		std::string mon = "dns";
 		
-		con->SendRequest(req);
-		resp = con->GetResponse();
-		if (resp.errnum > 0) {
-			std::cout << resp.error << std::endl;
-		}
-		std::cout << resp.data << std::endl;
-		
-		delete con;
-		con = NULL;*/
-		
-		/*amods::monitor::Monitor *monitor = moduleFactory->getMonitor("echo");
-		amods::monitor::System sys = { "208.67.222.222", 5, 1000 };
+		amods::monitor::Monitor *monitor = moduleFactory->getMonitor(mon);
 		amods::monitor::Response resp;
 		
-		monitor->SetSystem(sys);
-		resp = monitor->BeginMonitor();
-		std::cout << resp.avg << std::endl;
+		// ECHO-Monitor
+		//amods::monitor::System sys = { "208.67.222.222", 5, 1000 };
 		
-		delete monitor;
-		monitor = NULL;*/
-		
-		amods::monitor::Monitor *monitor = moduleFactory->getMonitor("dns");
+		// DNS-Monitor
 		amods::monitor::System sys = { "5.9.141.202", 3, 1000 };
-		amods::monitor::Response resp;
-		monitor->SetData("domain", "some.subdomain.ranta.ch");
-// 		monitor->SetData("domain", "some.subdomain.ranta.xy");
+		
+		//monitor->SetData("domain", "some.subdomain.ranta.ch");
+		monitor->SetData("domain", "some.subdomain.ranta.xy");
 		monitor->SetData("type", "A");
 		 
 		monitor->SetSystem(sys);
