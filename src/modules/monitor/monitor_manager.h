@@ -43,8 +43,9 @@ namespace amods {
 			float min;
 			float max;
 			float avg;
-			float times[];
-			std::vector<std::string> data;
+			std::vector<float> times;
+			std::vector< std::map<std::string, std::string> > data;
+			std::vector< std::pair<unsigned int, std::string> > error; // errno -> errmsg
 		};
 
 		class Monitor
@@ -63,7 +64,11 @@ namespace amods {
 				virtual const std::string &GetName() { return moduleName; };
 				virtual const std::string &GetDescription() { return moduleDescription; };
 				virtual void SetSystem(System sys) { system = sys; };
-				virtual System GetSystem() { return system; };
+				virtual System GetSystem() {
+					if (!system.num || system.num <= 0) { system.num = 1; }
+					if (!system.timeout_ms || system.timeout_ms <= 0) { system.timeout_ms = 1000; }
+					return system;
+				};
 				virtual void SetData(std::string data) { send_data.push_back(std::make_pair<std::string, std::string>("", data)); };
 				virtual void SetData(std::string key, std::string value) { send_data.push_back(std::make_pair<std::string, std::string>(key, value)); };
 				virtual void SetData(std::vector< std::pair<std::string, std::string> > data) { send_data = data; };

@@ -110,13 +110,14 @@ namespace amods {
 					uint16_t ttl;
 					std::vector< std::pair<std::string, std::string> > data;
 				};
-				void ParseResponse(char *received, uint16_t length, DnsResponse *res);
-				void SendRequest(Response *resp);
+				void ParseResponse(char* received, uint16_t length, amods::monitor::Dns::DnsResponse* dns_resp);
+				void SendRequest(Response *resp, size_t num);
 				uint16_t getType(std::string type) const;
 				std::string getType(uint16_t type) const;
 				uint16_t getClass(std::string type) const;
 				std::string getClass(uint16_t type) const;
 				uint16_t extractDomainName(char *data, uint16_t length, uint16_t offset, std::string *domain) const;
+				void MicroSleep(unsigned int ms);
 		};
 	}
 }

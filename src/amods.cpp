@@ -115,7 +115,7 @@ namespace amods {
 		monitor = NULL;*/
 		
 		amods::monitor::Monitor *monitor = moduleFactory->getMonitor("dns");
-		amods::monitor::System sys = { "5.9.141.202", 1, 1000 };
+		amods::monitor::System sys = { "5.9.141.202", 3, 1000 };
 		amods::monitor::Response resp;
 		monitor->SetData("domain", "some.subdomain.ranta.ch");
 // 		monitor->SetData("domain", "some.subdomain.ranta.xy");
@@ -123,7 +123,13 @@ namespace amods {
 		 
 		monitor->SetSystem(sys);
 		resp = monitor->BeginMonitor();
-		std::cout << resp.avg << std::endl;
+		std::cout << "response: " << std::endl;
+		std::cout << "  avg: " << resp.avg << std::endl;
+		std::cout << "  max: " << resp.max << std::endl;
+		std::cout << "  min: " << resp.min << std::endl;
+		for (std::map<std::string, std::string>::const_iterator it = resp.data[0].begin(); it != resp.data[0].end(); ++it) {
+			std::cout << "  " << it->first << " => " << it->second << std::endl;
+		}
 		 
 		delete monitor;
 		monitor = NULL;

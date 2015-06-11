@@ -40,15 +40,40 @@ namespace amods {
 		}
 
 		Response Dns::BeginMonitor() {
+			System sys = GetSystem();
 			Response resp;
-			resp.num = GetSystem().num;
-			resp.min = 0.0;
+			resp.num = sys.num;
+			resp.min = 999999.99;
 			resp.max = 0.0;
 			resp.avg = 0.0;
-			resp.times[GetSystem().num];
-			resp.data[GetSystem().num];
+			resp.times.resize(sys.num);
+			resp.data.resize(sys.num);
+			resp.error.resize(sys.num);
 			
-			SendRequest(&resp);
+			if (sys.address.empty()) {
+				return resp;
+			}
+			
+			// Send all requests
+			for (size_t num = 0; num < sys.num; num++) {
+				if (num > 0) {
+					MicroSleep(sys.timeout_ms);
+				}
+				SendRequest(&resp, num);
+			}
+			
+			// Statistics for the response
+			for (size_t num = 0; num < sys.num; num++) {
+				if (resp.times[num] > resp.max) {
+					resp.max = resp.times[num];
+				}
+				if (resp.times[num] < resp.min) {
+					resp.min = resp.times[num];
+				}
+				resp.avg += resp.times[num];
+			}
+			resp.avg = resp.avg / sys.num;
+			
 			return resp;
 		}
 
@@ -56,7 +81,7 @@ namespace amods {
 		* Check the DNS Server.
 		* @param Response *resp The reponse object with statistical data
 		*/
-		void Dns::SendRequest(Response *resp) {
+		void Dns::SendRequest(Response *resp, size_t num) {
 			struct timeval t_begin, t_end;
 			std::string _key, domain;
 			uint16_t type = 1, _class = 1;
@@ -132,9 +157,8 @@ namespace amods {
 			_length += sizeof(uint16_t);
 			
 			// Submit the request
-			System sys = GetSystem();
 			amods::connections::Response response;
-			amods::connections::Request req = { sys.address, 53, 1 };
+			amods::connections::Request req = { GetSystem().address, 53, 1 };
 			amods::connections::Connection *connection = module_factory->getConnection("udp");
 			
 			gettimeofday(&t_begin, NULL);
@@ -146,11 +170,25 @@ namespace amods {
 				std::cout << response.error << std::endl;
 			}
 			
-			// Parse the response if there is one
+			// Parse the response or add an error message to the response instead
+			std::stringstream stream;
+			DnsResponse dns_resp;
 			if (response.data_length > 0) {
-				DnsResponse r;
-				r.roundtrip = ((t_end.tv_sec * 1000.0) + (t_end.tv_usec / 1000.0)) - ((t_begin.tv_sec * 1000.0) + (t_begin.tv_usec / 1000.0));
-				ParseResponse(response.data, response.data_length, &r);
+				dns_resp.roundtrip = ((t_end.tv_sec * 1000.0) + (t_end.tv_usec / 1000.0)) - ((t_begin.tv_sec * 1000.0) + (t_begin.tv_usec / 1000.0));
+				ParseResponse(response.data, response.data_length, &dns_resp);
+				
+				stream << dns_resp.ttl;
+				resp->times[num] = dns_resp.roundtrip;
+				resp->data[num]["ttl"] = stream.str();
+				resp->data[num].insert(std::make_pair<std::string, std::string>("foo", "bar"));
+				for (std::vector< std::pair<std::string, std::string> >::const_iterator it = dns_resp.data.begin(); it != dns_resp.data.end(); ++it) {
+					resp->data[num].insert(*it);
+				}
+			}
+			else {
+				resp->times[num] = 0;
+				resp->data[num].insert(std::make_pair<std::string, std::string>("error", ""));
+				resp->error[num] = std::make_pair<unsigned int, std::string>(response.errnum, response.error);
 			}
 			
 			delete [] response.data;
@@ -163,7 +201,7 @@ namespace amods {
 		* @param uint16_t length Number of chars/bytes received
 		* @param struct DnsResponse *res Response is saved in here
 		*/
-		void Dns::ParseResponse(char *received, uint16_t length, DnsResponse *res) {
+		void Dns::ParseResponse(char *received, uint16_t length, DnsResponse *dns_resp) {
 			// Split out the DNS header
 			struct DnsHeader *header;
 			char *data = (char *)(received + sizeof(DnsHeader));
@@ -198,7 +236,7 @@ namespace amods {
 						l = *data;
 					}
 					data++;
-					res->data.push_back(question);
+					dns_resp->data.push_back(question);
 					
 					// Type and class, each 16bits - not interresting for now
 					_type = ntohs(*(uint16_t *)data);
@@ -248,10 +286,10 @@ namespace amods {
 					}
 					
 					// Append all data to the result
-					res->ttl = _ttl;
-					res->data.push_back(std::make_pair<std::string, std::string>("domain", domain));
-					res->data.push_back(std::make_pair<std::string, std::string>("type", _types[_type]));
-					res->data.push_back(std::make_pair<std::string, std::string>("data", rdata));
+					dns_resp->ttl = _ttl;
+					dns_resp->data.push_back(std::make_pair<std::string, std::string>("domain", domain));
+					dns_resp->data.push_back(std::make_pair<std::string, std::string>("type", _types[_type]));
+					dns_resp->data.push_back(std::make_pair<std::string, std::string>("data", rdata));
 				}
 			}
 		}
@@ -360,6 +398,17 @@ namespace amods {
 				return "";
 			}
 			return it->second;
+		}
+
+		/**
+		 * Sleep for the given number of Microseconds
+		 * @param unsigned int ms Number Microseconds to sleep
+		 */
+		void Dns::MicroSleep(unsigned int ms) {
+			struct timeval tv;
+			tv.tv_sec = ms / 1000;
+			tv.tv_usec = ms % 1000;
+			select(0, NULL, NULL, NULL, &tv);
 		}
 
 	}
